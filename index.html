@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feastle — Guess the country by its food</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0d0f;--surface:#17171a;--surface2:#1f1f23;
+  --border:rgba(255,255,255,0.07);--border-mid:rgba(255,255,255,0.20);
+  --text:#f5f4ee;--muted:rgba(245,244,238,0.70);--faint:rgba(245,244,238,0.45);
+  --accent:#c8f135;--correct:#4ade80;--correct-bg:rgba(74,222,128,0.09);
+  --close:#fbbf24;--close-bg:rgba(251,191,36,0.09);
+  --r:10px;--rl:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+header{width:100%;max-width:860px;padding:22px 20px 0;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:25px;color:var(--accent);letter-spacing:-0.5px}
+.logo em{color:var(--text);opacity:.3;font-style:normal}
+.header-right{display:flex;align-items:center;gap:10px}
+.pill{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;letter-spacing:.3px}
+.streak-pill{color:var(--accent);background:rgba(200,241,53,.08);border:1px solid rgba(200,241,53,.16)}
+.date-pill{color:var(--text);background:var(--surface2);border:1px solid var(--border-mid)}
+main{width:100%;max-width:860px;padding:14px 20px 60px}
+.how-to{font-size:11px;color:var(--faint);margin-bottom:8px;line-height:1.6;padding-left:10px;border-left:2px solid var(--border)}
+.game-header{margin-bottom:14px}
+.consumption-label{font-size:15px;font-weight:500;color:var(--text);font-family:'Syne',sans-serif;padding:8px 12px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border-mid);display:inline-block}
+.consumption-label span{color:var(--accent);font-weight:700}
+.source-footer{width:100%;max-width:860px;padding:16px 20px 32px;border-top:1px solid var(--border);margin-top:8px}
+.source-footer p{font-size:11px;color:var(--faint);line-height:1.7}
+.source-footer a{color:var(--muted);text-decoration:underline;text-decoration-color:rgba(245,244,238,0.2)}
+.source-footer a:hover{color:var(--text)}
+.stats-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:14px}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:9px 11px;min-width:0}
+.sc-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;font-family:'Syne',sans-serif}
+.sc-val{font-size:14px;font-weight:600;color:var(--text);font-family:'Syne',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-sub{font-size:10px;margin-top:2px}
+.dp{color:#f87171}.dn{color:#4ade80}.dz{color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:5px 13px;margin-bottom:10px}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);cursor:pointer;transition:color .12s}
+.li:hover{color:var(--text)}
+.ld{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.tm-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tm-meta{font-size:10px;color:var(--faint);font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:.5px}
+.hint-btn{background:rgba(200,241,53,0.10);border:1px solid rgba(200,241,53,0.35);border-radius:var(--r);color:var(--accent);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer;letter-spacing:.3px;transition:background .15s,border-color .15s}
+.hint-btn:hover{background:rgba(200,241,53,0.18);border-color:var(--accent)}
+.hint-btn:disabled{opacity:.4;cursor:not-allowed}
+.food-hint-card{background:var(--surface);border:1px solid rgba(200,241,53,.18);border-radius:var(--r);padding:10px 13px;margin-bottom:10px;display:flex;align-items:flex-start;gap:10px;animation:fadeIn .3s ease}
+.fh-icon{font-size:20px;flex-shrink:0;line-height:1.4}
+.fh-text{font-size:13px;color:var(--muted);line-height:1.55}
+.fh-loading{font-size:12px;color:var(--faint);font-style:italic;margin-bottom:10px;padding:8px 0}
+.tm-canvas-wrap{position:relative;width:100%;border-radius:var(--rl);overflow:hidden;border:1px solid var(--border);background:var(--bg);margin-bottom:13px}
+.block{position:absolute;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2px;overflow:hidden;cursor:pointer;transition:filter .1s}
+.block:hover{filter:brightness(1.18)}
+.bl{font-family:'Syne',sans-serif;font-weight:600;line-height:1.15;pointer-events:none}
+.bv{font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.3;opacity:.75;pointer-events:none}
+/* sub-dividers between subcategories */
+.subdiv{position:absolute;background:rgba(0,0,0,0.35);pointer-events:none;z-index:2}
+/* popup */
+.popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.popup{background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--rl);padding:20px;max-width:400px;width:100%;position:relative;animation:popIn .18s ease;max-height:90vh;overflow-y:auto}
+@keyframes popIn{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
+.popup-close{position:absolute;top:11px;right:12px;background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px}
+.popup-close:hover{background:var(--surface2);color:var(--text)}
+.popup-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:13px;display:flex;align-items:center;gap:7px}
+.popup-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+.pr{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.pr:last-child{border-bottom:none}
+.prl{font-size:12px;color:var(--muted)}
+.prv{font-size:12px;font-weight:500;font-family:'Syne',sans-serif}
+.sub-table{width:100%;margin-top:12px;border-collapse:collapse}
+.sub-table th{font-size:10px;color:var(--muted);font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:4px 0;border-bottom:1px solid var(--border)}
+.sub-table th:not(:first-child){text-align:right}
+.sub-table td{font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);color:var(--text)}
+.sub-table td:not(:first-child){text-align:right;font-family:'Syne',sans-serif;font-size:11px}
+.sub-table tr:last-child td{border-bottom:none}
+.sub-dot{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;vertical-align:middle;flex-shrink:0}
+.pbar-wrap{margin-top:12px}
+.pbar-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-family:'Syne',sans-serif;margin-bottom:5px}
+.pbar-row{display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:5px}
+.pbar-name{width:52px;color:var(--muted);flex-shrink:0;text-align:right;font-size:10px}
+.pbar-track{flex:1;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.pbar-fill{height:100%;border-radius:4px}
+.pbar-val{width:38px;color:var(--text);flex-shrink:0;font-size:11px}
+.pips{display:flex;gap:5px;margin-bottom:11px}
+.pip{flex:1;height:4px;border-radius:2px;background:var(--surface2)}
+.pip.cp{background:var(--correct)}.pip.clp{background:var(--close)}.pip.wp{background:rgba(255,255,255,.18)}
+.hint-text{font-size:12px;color:var(--muted);margin-bottom:11px;min-height:16px}
+.guess-area{display:flex;gap:8px;margin-bottom:13px;align-items:center}
+.ac-wrap{position:relative;flex:1}
+.ac-wrap input{width:100%;height:40px;background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:0 12px;outline:none;transition:border-color .15s}
+.ac-wrap input:focus{border-color:var(--accent)}
+.ac-wrap input::placeholder{color:var(--faint)}
+.ac-wrap input:disabled{opacity:.3;cursor:not-allowed}
+.ac-dropdown{position:absolute;top:44px;left:0;right:0;background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--r);z-index:20;max-height:180px;overflow-y:auto;display:none}
+.ac-item{padding:8px 12px;font-size:13px;color:var(--text);cursor:pointer}
+.ac-item:hover{background:var(--surface2)}
+.gbtn{height:40px;padding:0 18px;background:var(--accent);color:#0d0d0f;border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s,transform .1s;white-space:nowrap;flex-shrink:0}
+.gbtn:hover{background:#d8ff55}.gbtn:active{transform:scale(.97)}
+.gbtn:disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed}
+.guesses{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
+.gr{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--r);font-size:13px;border:1px solid transparent;animation:slideIn .2s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.g-wrong{background:rgba(255,255,255,.03);border-color:var(--border);color:var(--muted)}
+.g-close{background:var(--close-bg);border-color:rgba(251,191,36,.2);color:var(--close)}
+.g-correct{background:var(--correct-bg);border-color:rgba(74,222,128,.2);color:var(--correct)}
+.g-icon{font-size:11px;opacity:.7;flex-shrink:0;font-family:'Syne',sans-serif;font-weight:700}
+.g-name{flex:1;font-weight:500}
+.g-meta{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.g-dist{font-size:11px;opacity:.75;font-weight:400}
+.g-proximity{font-size:11px;font-weight:600;font-family:'Syne',sans-serif;opacity:.85;flex-shrink:0;margin-right:4px}
+.arrow-svg{display:inline-block;vertical-align:middle}
+.result-card{background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--rl);padding:16px;margin-bottom:11px;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+.result-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:4px}
+.result-title.won{color:var(--correct)}
+.result-sub{font-size:12px;color:var(--muted);margin-bottom:8px}
+.result-streak{font-size:12px;color:var(--accent);font-weight:500}
+.next-btn{width:100%;height:42px;background:transparent;border:1px solid var(--border-mid);border-radius:var(--r);color:var(--text);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.next-btn:hover{background:var(--surface);border-color:var(--accent);color:var(--accent)}
+.tt{position:fixed;background:var(--surface);border:1px solid var(--border-mid);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--text);pointer-events:none;display:none;z-index:50;white-space:nowrap}
+@media(max-width:560px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Feastle<em>.</em></div>
+  <div class="header-right">
+    <div class="pill date-pill" id="date-pill"></div>
+    <div class="pill streak-pill" id="streak-pill">◆ 0</div>
+  </div>
+</header>
+<main>
+  <div class="game-header">
+    <p class="how-to">Area = kcal. Mystery country on top, USA below. Columns = food groups (fixed order). Stripes within each column = subcategories. Click any block for a detailed breakdown.</p>
+    <div class="consumption-label" id="consumption-label"></div>
+  </div>
+  <div class="stats-row" id="stats-row"></div>
+  <div class="legend" id="legend"></div>
+  <div class="tm-toolbar">
+    <div class="tm-meta">Area = kcal · click any block to compare</div>
+    <button class="hint-btn" id="food-hint-btn" onclick="revealFoodHint()">Hint (National Dish)</button>
+  </div>
+  <div id="food-hint-box"></div>
+  <div class="tm-canvas-wrap" id="tm-canvas"></div>
+  <div class="pips" id="pips"></div>
+  <div class="hint-text" id="hint"></div>
+  <div class="guess-area">
+    <div class="ac-wrap">
+      <input type="text" id="ginput" placeholder="Type a country name…" autocomplete="off" spellcheck="false">
+      <div class="ac-dropdown" id="ac-drop"></div>
+    </div>
+    <button class="gbtn" id="gbtn" onclick="submitGuess()">Guess</button>
+  </div>
+  <div class="guesses" id="guesses"></div>
+  <div id="result-area"></div>
+</main>
+<div class="tt" id="tt"></div>
+<div id="popup-container"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   DATA SCHEMA
+   Each group has subs:[{name, g, kcal}]
+   Sub-shades are auto-generated from parent color
+═══════════════════════════════════════════ */
+
+const CAT_ORDER = [
+  "Beverages","Cereals","Fruit & veg","Dairy & eggs",
+  "Meat","Fats & oils","Sugar","Roots & tubers",
+  "Fish","Pulses & nuts"
+];
+
+// Parent colors — subs get lightness variants auto-generated in JS
+const CAT_COLORS = {
+  "Beverages":      {base:"#1a4070", shades:["#1a4070","#2a5a9a","#0e2a50","#3a70b0"]},
+  "Cereals":        {base:"#6b4a10", shades:["#6b4a10","#8a6020","#4a3008","#a07830"]},
+  "Fruit & veg":    {base:"#2a5812", shades:["#2a5812","#3a7818","#1a3a0a","#4a9820","#5aac28","#205808"]},
+  "Dairy & eggs":   {base:"#145040", shades:["#145040","#1c6a55","#0c3828","#246870"]},
+  "Meat":           {base:"#681e18", shades:["#681e18","#8a2820","#4a1410","#7a3020"]},
+  "Fats & oils":    {base:"#403c36", shades:["#403c36","#584e44","#2c2820"]},
+  "Sugar":          {base:"#5c1a3a", shades:["#5c1a3a","#7a2250"]},
+  "Roots & tubers": {base:"#583408", shades:["#583408","#784a10","#3a2006","#6a5010"]},
+  "Fish":           {base:"#0e3458", shades:["#0e3458","#1a4c70","#0a2238","#285880"]},
+  "Pulses & nuts":  {base:"#0e4838", shades:["#0e4838","#186050","#0a2e24","#207858"]},
+};
+
+function subColor(group, idx) {
+  const c = CAT_COLORS[group];
+  if (!c) return "#333";
+  return c.shades[idx % c.shades.length];
+}
+function subTextColor(hexFill) {
+  // always light text on dark fills
+  return "rgba(237,237,234,0.82)";
+}
+
+/* ═══════════════════════════════════════════
+   USA REFERENCE DATA (commodity level)
+═══════════════════════════════════════════ */
+const USA = {
+  name:"USA", region:"N. America", lat:38, lon:-97, kcal:3800, protein:112, fat:155, carbs:470,
+  data:[
+    {group:"Beverages",      subs:[{name:"Soft drinks",g:310,kcal:72},{name:"Alcohol",g:140,kcal:42},{name:"Juices",g:70,kcal:26}]},
+    {group:"Cereals",        subs:[{name:"Wheat",g:175,kcal:570},{name:"Maize",g:90,kcal:310},{name:"Rice",g:28,kcal:100},{name:"Other cereals",g:27,kcal:88}]},
+    {group:"Fruit & veg",    subs:[{name:"Tomatoes",g:88,kcal:18},{name:"Lettuce/salad",g:55,kcal:8},{name:"Potatoes (fresh)",g:48,kcal:37},{name:"Oranges",g:42,kcal:20},{name:"Apples",g:38,kcal:18},{name:"Bananas",g:32,kcal:29},{name:"Onions",g:28,kcal:11},{name:"Corn (sweet)",g:25,kcal:22}]},
+    {group:"Dairy & eggs",   subs:[{name:"Milk",g:200,kcal:130},{name:"Cheese",g:55,kcal:205},{name:"Butter",g:10,kcal:74},{name:"Eggs",g:38,kcal:54}]},
+    {group:"Meat",           subs:[{name:"Beef",g:112,kcal:264},{name:"Poultry",g:122,kcal:244},{name:"Pork",g:70,kcal:158},{name:"Other meat",g:26,kcal:54}]},
+    {group:"Fats & oils",    subs:[{name:"Veg oils",g:58,kcal:520},{name:"Animal fats",g:17,kcal:134}]},
+    {group:"Sugar",          subs:[{name:"Sugar (cane/beet)",g:82,kcal:312},{name:"Sweeteners",g:28,kcal:104}]},
+    {group:"Fish",           subs:[{name:"Marine fish",g:16,kcal:30},{name:"Freshwater fish",g:7,kcal:13},{name:"Crustaceans",g:5,kcal:12}]},
+    {group:"Pulses & nuts",  subs:[{name:"Pulses",g:18,kcal:60},{name:"Groundnuts",g:18,kcal:104},{name:"Tree nuts",g:6,kcal:40}]},
+  ]
+};
+
+/* ═══════════════════════════════════════════
+   50 COUNTRIES — commodity-level subs
+   Calibrated to FAOSTAT FBS patterns
+═══════════════════════════════════════════ */
+const COUNTRIES = [
+  {name:"Norway", region:"Europe", lat:60, lon:10, kcal:2940, protein:100, fat:118, carbs:352,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:245,kcal:55},{name:"Alcohol",g:105,kcal:31},{name:"Juices",g:50,kcal:18}]},
+    {group:"Cereals",       subs:[{name:"Wheat",g:158,kcal:514},{name:"Oats",g:22,kcal:72},{name:"Rice",g:18,kcal:65},{name:"Other cereals",g:12,kcal:39}]},
+    {group:"Fruit & veg",   subs:[{name:"Apples",g:52,kcal:25},{name:"Tomatoes",g:42,kcal:8},{name:"Carrots",g:38,kcal:16},{name:"Cloudberries/lingonberries",g:35,kcal:14},{name:"Cabbage",g:28,kcal:7},{name:"Cucumber",g:22,kcal:3},{name:"Strawberries",g:20,kcal:6},{name:"Broccoli",g:18,kcal:6}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:200,kcal:130},{name:"Cheese",g:52,kcal:194},{name:"Butter",g:8,kcal:59},{name:"Eggs",g:28,kcal:40}]},
+    {group:"Meat",          subs:[{name:"Poultry",g:48,kcal:105},{name:"Pork",g:52,kcal:118},{name:"Beef",g:28,kcal:66},{name:"Other meat",g:10,kcal:23}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:35,kcal:315},{name:"Animal fats",g:13,kcal:103}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:55,kcal:210},{name:"Sweeteners",g:15,kcal:57}]},
+    {group:"Fish",          subs:[{name:"Salmon",g:30,kcal:60},{name:"Marine fish",g:22,kcal:42},{name:"Other fish",g:10,kcal:20}]},
+    {group:"Pulses & nuts", subs:[{name:"Pulses",g:8,kcal:27},{name:"Nuts",g:10,kcal:60}]},
+  ]},
+  {name:"Japan", region:"Asia", lat:36, lon:138, kcal:2730, protein:96, fat:92, carbs:396,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea/coffee",g:190,kcal:38},{name:"Soft drinks",g:110,kcal:28},{name:"Alcohol",g:50,kcal:18}]},
+    {group:"Cereals",       subs:[{name:"Rice",g:175,kcal:595},{name:"Wheat",g:118,kcal:384},{name:"Other cereals",g:25,kcal:82}]},
+    {group:"Fruit & veg",   subs:[{name:"Daikon radish",g:55,kcal:10},{name:"Napa cabbage",g:42,kcal:8},{name:"Mandarin/satsuma",g:40,kcal:19},{name:"Seaweed (wakame/nori)",g:35,kcal:9},{name:"Mushrooms (shiitake)",g:28,kcal:10},{name:"Edamame/green soy",g:25,kcal:35},{name:"Apples",g:22,kcal:11},{name:"Burdock root",g:18,kcal:15}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:85,kcal:55},{name:"Eggs",g:55,kcal:79},{name:"Cheese",g:22,kcal:82},{name:"Yoghurt",g:25,kcal:18}]},
+    {group:"Meat",          subs:[{name:"Pork",g:38,kcal:86},{name:"Poultry",g:36,kcal:79},{name:"Beef",g:15,kcal:35},{name:"Other",g:6,kcal:13}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:40,kcal:360},{name:"Animal fats",g:12,kcal:95}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:42,kcal:160},{name:"Sweeteners",g:18,kcal:68}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:45,kcal:90},{name:"Tuna/pelagic",g:28,kcal:55},{name:"Freshwater fish",g:15,kcal:28},{name:"Shellfish",g:10,kcal:18}]},
+    {group:"Pulses & nuts", subs:[{name:"Soybeans",g:10,kcal:40},{name:"Pulses",g:18,kcal:62},{name:"Nuts",g:5,kcal:30}]},
+  ]},
+  {name:"India", region:"Asia", lat:20, lon:77, kcal:2460, protein:62, fat:60, carbs:472,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:130,kcal:28},{name:"Soft drinks",g:38,kcal:10},{name:"Juice",g:12,kcal:5}]},
+    {group:"Cereals",       subs:[{name:"Rice",g:198,kcal:673},{name:"Wheat",g:185,kcal:601},{name:"Millets/sorghum",g:48,kcal:156},{name:"Other cereals",g:17,kcal:55}]},
+    {group:"Fruit & veg",   subs:[{name:"Onions",g:62,kcal:25},{name:"Tomatoes",g:55,kcal:11},{name:"Cauliflower/cabbage",g:42,kcal:10},{name:"Mangoes",g:38,kcal:24},{name:"Bananas",g:28,kcal:25},{name:"Spinach/palak",g:25,kcal:6},{name:"Bitter gourd/okra",g:22,kcal:7},{name:"Chillies (green)",g:18,kcal:6}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk/lassi",g:235,kcal:153},{name:"Ghee/butter",g:12,kcal:89},{name:"Yoghurt",g:38,kcal:22},{name:"Eggs",g:10,kcal:14}]},
+    {group:"Meat",          subs:[{name:"Poultry",g:10,kcal:22},{name:"Goat/mutton",g:5,kcal:11},{name:"Other",g:3,kcal:7}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:30,kcal:270},{name:"Ghee",g:12,kcal:108}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:60,kcal:228},{name:"Jaggery",g:22,kcal:84}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:8,kcal:16},{name:"Freshwater fish",g:10,kcal:20}]},
+    {group:"Pulses & nuts", subs:[{name:"Lentils/dal",g:38,kcal:124},{name:"Chickpeas",g:22,kcal:72},{name:"Groundnuts",g:22,kcal:128},{name:"Other pulses",g:10,kcal:33}]},
+  ]},
+  {name:"China", region:"Asia", lat:35, lon:105, kcal:3080, protein:103, fat:110, carbs:438,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:160,kcal:32},{name:"Soft drinks",g:88,kcal:22},{name:"Alcohol/baijiu",g:42,kcal:18}]},
+    {group:"Cereals",       subs:[{name:"Rice",g:218,kcal:741},{name:"Wheat",g:138,kcal:448},{name:"Maize",g:22,kcal:76},{name:"Other",g:7,kcal:23}]},
+    {group:"Fruit & veg",   subs:[{name:"Bok choy/leafy greens",g:72,kcal:14},{name:"Garlic",g:48,kcal:64},{name:"Tomatoes",g:45,kcal:9},{name:"Watermelon",g:42,kcal:13},{name:"Apples (Fuji)",g:38,kcal:18},{name:"Cucumbers",g:32,kcal:5},{name:"Eggplant",g:25,kcal:6},{name:"Mandarin oranges",g:22,kcal:10}]},
+    {group:"Dairy & eggs",  subs:[{name:"Eggs",g:58,kcal:83},{name:"Milk",g:42,kcal:27},{name:"Tofu-soy",g:18,kcal:22}]},
+    {group:"Meat",          subs:[{name:"Pork",g:88,kcal:198},{name:"Poultry",g:58,kcal:127},{name:"Beef",g:22,kcal:52},{name:"Other",g:10,kcal:22}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:52,kcal:468},{name:"Animal fats",g:16,kcal:126}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:42,kcal:160},{name:"Sweeteners",g:10,kcal:38}]},
+    {group:"Roots & tubers",subs:[{name:"Sweet potato",g:38,kcal:40},{name:"Potato",g:32,kcal:33},{name:"Taro",g:18,kcal:19}]},
+    {group:"Fish",          subs:[{name:"Freshwater fish",g:38,kcal:74},{name:"Marine fish",g:22,kcal:43},{name:"Shellfish",g:8,kcal:16}]},
+  ]},
+  {name:"Brazil", region:"S. America", lat:-15, lon:-51, kcal:3200, protein:96, fat:108, carbs:456,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:178,kcal:42},{name:"Juice",g:112,kcal:45},{name:"Alcohol",g:70,kcal:21}]},
+    {group:"Cereals",       subs:[{name:"Wheat",g:148,kcal:481},{name:"Maize",g:92,kcal:317},{name:"Rice",g:62,kcal:211},{name:"Other",g:8,kcal:26}]},
+    {group:"Fruit & veg",   subs:[{name:"Oranges/citrus",g:72,kcal:34},{name:"Bananas",g:55,kcal:49},{name:"Tomatoes",g:48,kcal:10},{name:"Mango/papaya",g:42,kcal:25},{name:"Collard greens (couve)",g:32,kcal:10},{name:"Watermelon",g:28,kcal:8},{name:"Acai berries",g:22,kcal:28},{name:"Chayote/peppers",g:18,kcal:5}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:148,kcal:96},{name:"Cheese",g:32,kcal:119},{name:"Eggs",g:42,kcal:60},{name:"Yoghurt",g:38,kcal:27}]},
+    {group:"Meat",          subs:[{name:"Beef",g:95,kcal:224},{name:"Poultry",g:68,kcal:150},{name:"Pork",g:28,kcal:63},{name:"Other",g:4,kcal:9}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:44,kcal:396},{name:"Animal fats",g:14,kcal:110}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:92,kcal:350},{name:"Sweeteners",g:28,kcal:107}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava/manioc",g:60,kcal:65},{name:"Potato",g:22,kcal:23},{name:"Other tubers",g:8,kcal:8}]},
+    {group:"Pulses & nuts", subs:[{name:"Black beans",g:42,kcal:135},{name:"Other beans",g:28,kcal:91},{name:"Groundnuts",g:10,kcal:58}]},
+  ]},
+  {name:"Ethiopia", region:"Africa", lat:9, lon:40, kcal:2060, protein:58, fat:42, carbs:415,
+   data:[
+    {group:"Beverages",     subs:[{name:"Coffee",g:88,kcal:18},{name:"Tea",g:22,kcal:5},{name:"Teff beer",g:12,kcal:4}]},
+    {group:"Cereals",       subs:[{name:"Teff",g:175,kcal:568},{name:"Maize",g:148,kcal:480},{name:"Sorghum",g:98,kcal:318},{name:"Wheat",g:72,kcal:234},{name:"Barley",g:42,kcal:136}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:28,kcal:6},{name:"Onions",g:25,kcal:10},{name:"Green peppers",g:22,kcal:5},{name:"Collard greens (gomen)",g:18,kcal:4},{name:"Mango",g:16,kcal:10},{name:"Banana (matoke)",g:14,kcal:13}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:48,kcal:31},{name:"Butter/niter kibbeh",g:10,kcal:74},{name:"Eggs",g:4,kcal:6}]},
+    {group:"Meat",          subs:[{name:"Beef/lamb",g:22,kcal:52},{name:"Poultry",g:12,kcal:26},{name:"Other",g:4,kcal:9}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:22,kcal:198},{name:"Butter",g:6,kcal:47}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:32,kcal:122},{name:"Honey",g:8,kcal:24}]},
+    {group:"Roots & tubers",subs:[{name:"Enset/kocho",g:108,kcal:116},{name:"Potato",g:48,kcal:49},{name:"Sweet potato",g:29,kcal:31}]},
+    {group:"Pulses & nuts", subs:[{name:"Lentils",g:38,kcal:124},{name:"Chickpeas",g:32,kcal:104},{name:"Fava beans",g:28,kcal:92},{name:"Other",g:17,kcal:55}]},
+  ]},
+  {name:"France", region:"Europe", lat:46, lon:2, kcal:3420, protein:120, fat:148, carbs:385,
+   data:[
+    {group:"Beverages",     subs:[{name:"Wine",g:168,kcal:50},{name:"Soft drinks",g:178,kcal:42},{name:"Coffee",g:88,kcal:10},{name:"Beer",g:46,kcal:14}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread",g:198,kcal:643},{name:"Rice",g:28,kcal:95},{name:"Other cereals",g:39,kcal:127}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:62,kcal:12},{name:"Apples",g:52,kcal:25},{name:"Carrots",g:38,kcal:16},{name:"Leeks/shallots",g:32,kcal:10},{name:"Mushrooms (champignon)",g:28,kcal:6},{name:"Courgettes",g:22,kcal:4},{name:"Peaches/apricots",g:20,kcal:10},{name:"Haricots verts",g:18,kcal:4}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:158,kcal:103},{name:"Cheese",g:68,kcal:253},{name:"Yoghurt",g:52,kcal:37},{name:"Eggs",g:32,kcal:46},{name:"Butter",g:12,kcal:89}]},
+    {group:"Meat",          subs:[{name:"Pork/charcuterie",g:72,kcal:163},{name:"Beef",g:52,kcal:122},{name:"Poultry",g:42,kcal:92},{name:"Other",g:9,kcal:20}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:52,kcal:468},{name:"Butter",g:16,kcal:119}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:72,kcal:274},{name:"Confectionery",g:20,kcal:76}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:22,kcal:43},{name:"Salmon",g:12,kcal:24},{name:"Shellfish",g:11,kcal:21}]},
+    {group:"Pulses & nuts", subs:[{name:"Lentils",g:10,kcal:33},{name:"Walnuts/nuts",g:10,kcal:65}]},
+  ]},
+  {name:"Italy", region:"Europe", lat:43, lon:12, kcal:3530, protein:116, fat:154, carbs:448,
+   data:[
+    {group:"Beverages",     subs:[{name:"Wine",g:158,kcal:47},{name:"Soft drinks",g:168,kcal:40},{name:"Coffee/espresso",g:88,kcal:10},{name:"Beer",g:46,kcal:14}]},
+    {group:"Cereals",       subs:[{name:"Wheat/pasta",g:225,kcal:731},{name:"Rice",g:38,kcal:129},{name:"Other cereals",g:42,kcal:136}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes (San Marzano)",g:105,kcal:21},{name:"Zucchini/eggplant",g:52,kcal:12},{name:"Artichokes",g:38,kcal:19},{name:"Clementines/oranges",g:35,kcal:17},{name:"Fennel/radicchio",g:28,kcal:5},{name:"Peaches/cherries",g:25,kcal:12},{name:"Olives",g:20,kcal:24}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:128,kcal:83},{name:"Cheese (Parm/mozz)",g:78,kcal:291},{name:"Yoghurt",g:38,kcal:27},{name:"Eggs",g:30,kcal:43},{name:"Butter",g:8,kcal:59}]},
+    {group:"Meat",          subs:[{name:"Cured meats",g:52,kcal:156},{name:"Beef",g:45,kcal:106},{name:"Poultry",g:42,kcal:92},{name:"Pork",g:23,kcal:52}]},
+    {group:"Fats & oils",   subs:[{name:"Olive oil",g:62,kcal:558},{name:"Other veg oils",g:18,kcal:162}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:65,kcal:248},{name:"Confectionery",g:23,kcal:88}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:28,kcal:55},{name:"Tuna",g:18,kcal:35},{name:"Shellfish",g:12,kcal:23}]},
+    {group:"Pulses & nuts", subs:[{name:"Legumes",g:18,kcal:59},{name:"Nuts",g:10,kcal:65}]},
+  ]},
+  {name:"Mexico", region:"N. America", lat:24, lon:-102, kcal:3100, protein:94, fat:102, carbs:462,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:248,kcal:58},{name:"Juice",g:108,kcal:43},{name:"Alcohol/beer",g:74,kcal:22}]},
+    {group:"Cereals",       subs:[{name:"Maize/tortilla",g:248,kcal:806},{name:"Wheat/bread",g:98,kcal:318},{name:"Other cereals",g:19,kcal:62}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes/tomatillos",g:88,kcal:17},{name:"Chillies (jalapeño/ancho)",g:55,kcal:14},{name:"Avocado",g:48,kcal:77},{name:"Lime",g:38,kcal:12},{name:"Mango",g:35,kcal:21},{name:"Cactus (nopal)",g:28,kcal:8},{name:"Papaya",g:22,kcal:9}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:118,kcal:77},{name:"Cheese",g:42,kcal:157},{name:"Eggs",g:52,kcal:74},{name:"Cream",g:28,kcal:97}]},
+    {group:"Meat",          subs:[{name:"Beef",g:48,kcal:113},{name:"Poultry",g:58,kcal:127},{name:"Pork",g:22,kcal:50},{name:"Other",g:12,kcal:26}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:38,kcal:342},{name:"Lard",g:14,kcal:124}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:88,kcal:335},{name:"Sweeteners",g:30,kcal:114}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:35,kcal:36},{name:"Sweet potato",g:20,kcal:21}]},
+    {group:"Pulses & nuts", subs:[{name:"Black/pinto beans",g:52,kcal:168},{name:"Other pulses",g:12,kcal:39},{name:"Groundnuts",g:8,kcal:46}]},
+  ]},
+  {name:"Nigeria", region:"Africa", lat:9, lon:8, kcal:2680, protein:68, fat:68, carbs:442,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:72,kcal:17},{name:"Palm wine/beer",g:52,kcal:16},{name:"Tea",g:28,kcal:7}]},
+    {group:"Cereals",       subs:[{name:"Maize",g:148,kcal:481},{name:"Sorghum",g:82,kcal:266},{name:"Millet",g:52,kcal:169},{name:"Rice",g:36,kcal:122}]},
+    {group:"Fruit & veg",   subs:[{name:"Plantain",g:78,kcal:86},{name:"Tomatoes",g:45,kcal:9},{name:"Scotch bonnet peppers",g:32,kcal:8},{name:"Okra",g:28,kcal:8},{name:"Pineapple",g:25,kcal:13},{name:"Spinach/ugwu leaf",g:20,kcal:5}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:18,kcal:12},{name:"Eggs",g:12,kcal:17}]},
+    {group:"Meat",          subs:[{name:"Goat/lamb",g:20,kcal:47},{name:"Poultry",g:18,kcal:40},{name:"Beef",g:10,kcal:24}]},
+    {group:"Fats & oils",   subs:[{name:"Palm oil",g:32,kcal:288},{name:"Groundnut oil",g:16,kcal:144}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:35,kcal:133},{name:"Honey",g:10,kcal:30}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava/garri",g:188,kcal:202},{name:"Yam",g:118,kcal:127},{name:"Cocoyam",g:46,kcal:49}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:28,kcal:55},{name:"Freshwater fish",g:20,kcal:39},{name:"Dried/smoked fish",g:10,kcal:19}]},
+    {group:"Pulses & nuts", subs:[{name:"Cowpeas",g:38,kcal:123},{name:"Groundnuts",g:28,kcal:162},{name:"Other pulses",g:16,kcal:52}]},
+  ]},
+  {name:"Argentina", region:"S. America", lat:-34, lon:-64, kcal:3220, protein:110, fat:122, carbs:430,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:188,kcal:44},{name:"Wine",g:98,kcal:29},{name:"Mate tea",g:62,kcal:10},{name:"Beer",g:32,kcal:10}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread",g:188,kcal:610},{name:"Maize",g:68,kcal:221},{name:"Rice",g:32,kcal:109},{name:"Other",g:7,kcal:23}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:55,kcal:11},{name:"Lettuce/salad greens",g:38,kcal:6},{name:"Peaches/apricots",g:35,kcal:17},{name:"Onions/garlic",g:28,kcal:11},{name:"Apples (Granny Smith)",g:25,kcal:12},{name:"Lemon",g:22,kcal:7},{name:"Bell peppers",g:18,kcal:4}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:168,kcal:109},{name:"Cheese",g:55,kcal:205},{name:"Yoghurt",g:48,kcal:34},{name:"Eggs",g:38,kcal:54},{name:"Butter",g:12,kcal:89}]},
+    {group:"Meat",          subs:[{name:"Beef (asado)",g:148,kcal:349},{name:"Poultry",g:55,kcal:121},{name:"Pork",g:25,kcal:57},{name:"Other",g:10,kcal:22}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils/soy",g:48,kcal:432},{name:"Animal fats",g:14,kcal:110}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:85,kcal:324},{name:"Dulce de leche",g:27,kcal:95}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:40,kcal:41},{name:"Sweet potato",g:10,kcal:11}]},
+    {group:"Pulses & nuts", subs:[{name:"Soy (processed)",g:20,kcal:80},{name:"Other beans",g:15,kcal:49}]},
+  ]},
+  {name:"Germany", region:"Europe", lat:51, lon:10, kcal:3380, protein:110, fat:148, carbs:392,
+   data:[
+    {group:"Beverages",     subs:[{name:"Beer",g:198,kcal:59},{name:"Soft drinks",g:188,kcal:44},{name:"Coffee",g:78,kcal:9},{name:"Wine",g:36,kcal:11}]},
+    {group:"Cereals",       subs:[{name:"Wheat/rye bread",g:210,kcal:682},{name:"Rye",g:42,kcal:136},{name:"Other cereals",g:28,kcal:91}]},
+    {group:"Fruit & veg",   subs:[{name:"Apples",g:52,kcal:25},{name:"Sauerkraut/cabbage",g:45,kcal:11},{name:"Tomatoes",g:38,kcal:7},{name:"Carrots",g:32,kcal:13},{name:"Asparagus (Spargel)",g:25,kcal:5},{name:"Strawberries",g:22,kcal:7},{name:"Onions",g:18,kcal:7}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:158,kcal:103},{name:"Cheese",g:58,kcal:216},{name:"Yoghurt",g:55,kcal:39},{name:"Eggs",g:38,kcal:54},{name:"Butter",g:12,kcal:89}]},
+    {group:"Meat",          subs:[{name:"Pork/sausage",g:95,kcal:215},{name:"Poultry",g:52,kcal:114},{name:"Beef",g:28,kcal:66},{name:"Other",g:10,kcal:22}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:48,kcal:432},{name:"Animal fats",g:17,kcal:134}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:75,kcal:286},{name:"Confectionery",g:23,kcal:88}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:14,kcal:27},{name:"Herring",g:12,kcal:24}]},
+    {group:"Pulses & nuts", subs:[{name:"Pulses",g:8,kcal:26},{name:"Nuts",g:10,kcal:65}]},
+  ]},
+  {name:"Egypt", region:"Africa", lat:27, lon:30, kcal:3360, protein:102, fat:108, carbs:515,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:138,kcal:28},{name:"Soft drinks",g:48,kcal:11},{name:"Juices",g:16,kcal:6}]},
+    {group:"Cereals",       subs:[{name:"Wheat/aish",g:358,kcal:1163},{name:"Maize",g:98,kcal:318},{name:"Rice",g:59,kcal:200}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:88,kcal:18},{name:"Onions",g:55,kcal:22},{name:"Cucumbers",g:42,kcal:6},{name:"Oranges/citrus",g:38,kcal:18},{name:"Eggplant (moussaka base)",g:28,kcal:7},{name:"Fenugreek/molokhia",g:22,kcal:6},{name:"Mangoes",g:18,kcal:11}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:98,kcal:64},{name:"Eggs",g:42,kcal:60},{name:"Cheese",g:28,kcal:104},{name:"Yoghurt",g:7,kcal:5}]},
+    {group:"Meat",          subs:[{name:"Poultry",g:32,kcal:70},{name:"Beef",g:22,kcal:52},{name:"Other",g:14,kcal:31}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:38,kcal:342},{name:"Butter/ghee",g:14,kcal:110}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:72,kcal:274},{name:"Sweeteners",g:20,kcal:76}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:48,kcal:49},{name:"Sweet potato",g:14,kcal:15}]},
+    {group:"Pulses & nuts", subs:[{name:"Fava beans (ful)",g:32,kcal:104},{name:"Lentils",g:12,kcal:39},{name:"Other pulses",g:11,kcal:36}]},
+  ]},
+  {name:"Thailand", region:"Asia", lat:15, lon:101, kcal:2760, protein:83, fat:90, carbs:418,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:148,kcal:35},{name:"Tea/coffee",g:98,kcal:22},{name:"Alcohol",g:36,kcal:11}]},
+    {group:"Cereals",       subs:[{name:"Rice (jasmine)",g:298,kcal:1013},{name:"Wheat/noodles",g:48,kcal:156},{name:"Other cereals",g:16,kcal:52}]},
+    {group:"Fruit & veg",   subs:[{name:"Mangosteen/lychee",g:52,kcal:33},{name:"Papaya (som tam)",g:45,kcal:18},{name:"Thai chillies",g:38,kcal:10},{name:"Lemongrass/galangal",g:30,kcal:9},{name:"Eggplant (Thai)",g:25,kcal:6},{name:"Morning glory (pak boong)",g:22,kcal:5},{name:"Coconut flesh",g:20,kcal:70},{name:"Banana/jackfruit",g:18,kcal:16}]},
+    {group:"Dairy & eggs",  subs:[{name:"Eggs",g:52,kcal:74},{name:"Milk/condensed",g:28,kcal:18},{name:"Coconut milk",g:12,kcal:25}]},
+    {group:"Meat",          subs:[{name:"Poultry",g:42,kcal:92},{name:"Pork",g:32,kcal:72},{name:"Beef",g:9,kcal:21},{name:"Other",g:5,kcal:11}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:32,kcal:288},{name:"Coconut oil",g:13,kcal:115}]},
+    {group:"Sugar",         subs:[{name:"Sugar (palm/cane)",g:62,kcal:236},{name:"Sweeteners",g:20,kcal:76}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava",g:32,kcal:34},{name:"Sweet potato",g:16,kcal:17},{name:"Yam",g:10,kcal:11}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:38,kcal:74},{name:"Freshwater fish",g:28,kcal:55},{name:"Shellfish",g:16,kcal:31}]},
+  ]},
+  {name:"Australia", region:"Oceania", lat:-25, lon:134, kcal:3440, protein:118, fat:145, carbs:415,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:248,kcal:58},{name:"Alcohol/beer",g:148,kcal:44},{name:"Coffee",g:68,kcal:8},{name:"Juices",g:26,kcal:10}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread",g:178,kcal:578},{name:"Other cereals",g:58,kcal:188},{name:"Rice",g:22,kcal:75}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:52,kcal:10},{name:"Avocado",g:45,kcal:72},{name:"Oranges/mandarins",g:42,kcal:20},{name:"Bananas",g:38,kcal:34},{name:"Carrots",g:28,kcal:12},{name:"Broccoli",g:22,kcal:7},{name:"Macadamia fruit",g:8,kcal:56}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:188,kcal:122},{name:"Cheese",g:58,kcal:216},{name:"Yoghurt",g:62,kcal:44},{name:"Eggs",g:38,kcal:54},{name:"Butter",g:12,kcal:89}]},
+    {group:"Meat",          subs:[{name:"Beef/lamb",g:105,kcal:247},{name:"Poultry",g:82,kcal:180},{name:"Pork",g:32,kcal:72},{name:"Other",g:9,kcal:20}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:50,kcal:450},{name:"Animal fats",g:18,kcal:142}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:82,kcal:312},{name:"Honey",g:12,kcal:37},{name:"Confectionery",g:14,kcal:53}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:16,kcal:31},{name:"Shellfish/prawns",g:14,kcal:27}]},
+    {group:"Pulses & nuts", subs:[{name:"Macadamia/nuts",g:12,kcal:78},{name:"Pulses",g:15,kcal:49},{name:"Other",g:8,kcal:26}]},
+  ]},
+  {name:"Indonesia", region:"Asia", lat:-5, lon:120, kcal:2740, protein:72, fat:76, carbs:454,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:108,kcal:22},{name:"Soft drinks",g:72,kcal:17},{name:"Coffee",g:20,kcal:5}]},
+    {group:"Cereals",       subs:[{name:"Rice",g:348,kcal:1183},{name:"Wheat/noodles",g:42,kcal:136},{name:"Other",g:18,kcal:58}]},
+    {group:"Fruit & veg",   subs:[{name:"Chillies (sambal base)",g:55,kcal:14},{name:"Banana/plantain",g:45,kcal:40},{name:"Kangkung (water spinach)",g:38,kcal:7},{name:"Jackfruit (nangka)",g:30,kcal:28},{name:"Mango/papaya",g:28,kcal:16},{name:"Shallots/garlic",g:22,kcal:22},{name:"Durian",g:12,kcal:16}]},
+    {group:"Dairy & eggs",  subs:[{name:"Eggs",g:42,kcal:60},{name:"Milk (condensed)",g:22,kcal:14},{name:"Tofu",g:8,kcal:5}]},
+    {group:"Meat",          subs:[{name:"Poultry (ayam)",g:30,kcal:66},{name:"Beef (rendang)",g:14,kcal:33},{name:"Other",g:8,kcal:18}]},
+    {group:"Fats & oils",   subs:[{name:"Palm oil",g:35,kcal:315},{name:"Coconut oil",g:17,kcal:153}]},
+    {group:"Sugar",         subs:[{name:"Sugar (palm)",g:52,kcal:198},{name:"Other sweeteners",g:18,kcal:68}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava",g:52,kcal:56},{name:"Sweet potato",g:22,kcal:24},{name:"Potato",g:14,kcal:14}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:38,kcal:74},{name:"Freshwater fish",g:22,kcal:43},{name:"Shellfish",g:12,kcal:23}]},
+  ]},
+  {name:"Vietnam", region:"Asia", lat:16, lon:108, kcal:2580, protein:82, fat:72, carbs:422,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:118,kcal:24},{name:"Coffee (ca phe)",g:72,kcal:14},{name:"Soft drinks",g:32,kcal:8}]},
+    {group:"Cereals",       subs:[{name:"Rice",g:348,kcal:1183},{name:"Wheat/pho noodles",g:42,kcal:136},{name:"Other cereals",g:18,kcal:58}]},
+    {group:"Fruit & veg",   subs:[{name:"Bean sprouts (giá đỗ)",g:48,kcal:14},{name:"Lemongrass/mint herbs",g:42,kcal:12},{name:"Banana flower",g:30,kcal:32},{name:"Bitter melon",g:28,kcal:5},{name:"Dragon fruit",g:25,kcal:13},{name:"Rambutan/lychee",g:22,kcal:14},{name:"Morning glory (rau muống)",g:20,kcal:4},{name:"Pomelo",g:18,kcal:7}]},
+    {group:"Dairy & eggs",  subs:[{name:"Eggs",g:38,kcal:54},{name:"Milk/condensed",g:16,kcal:10},{name:"Tofu",g:8,kcal:5}]},
+    {group:"Meat",          subs:[{name:"Pork",g:45,kcal:102},{name:"Poultry",g:28,kcal:62},{name:"Beef (pho)",g:9,kcal:21}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:28,kcal:252},{name:"Lard",g:10,kcal:90}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:52,kcal:198},{name:"Sweeteners",g:16,kcal:61}]},
+    {group:"Roots & tubers",subs:[{name:"Sweet potato",g:32,kcal:34},{name:"Cassava",g:18,kcal:19},{name:"Potato",g:8,kcal:8}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:42,kcal:82},{name:"Freshwater fish",g:32,kcal:63},{name:"Shellfish",g:14,kcal:27}]},
+  ]},
+  {name:"Kenya", region:"Africa", lat:1, lon:38, kcal:2230, protein:62, fat:52, carbs:432,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea (chai)",g:88,kcal:18},{name:"Soft drinks",g:32,kcal:8},{name:"Other",g:12,kcal:3}]},
+    {group:"Cereals",       subs:[{name:"Maize/ugali",g:352,kcal:1142},{name:"Wheat/chapati",g:82,kcal:266},{name:"Sorghum/millet",g:58,kcal:188}]},
+    {group:"Fruit & veg",   subs:[{name:"Sukuma wiki (kale)",g:65,kcal:25},{name:"Tomatoes",g:38,kcal:7},{name:"Mangoes",g:32,kcal:19},{name:"Avocado",g:25,kcal:40},{name:"Bananas",g:22,kcal:20},{name:"Onions",g:18,kcal:7},{name:"Passion fruit",g:12,kcal:5}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk (fresh)",g:62,kcal:40},{name:"Eggs",g:16,kcal:23},{name:"Fermented milk",g:4,kcal:3}]},
+    {group:"Meat",          subs:[{name:"Beef (nyama choma)",g:22,kcal:52},{name:"Goat",g:12,kcal:28},{name:"Poultry",g:8,kcal:18}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:20,kcal:180},{name:"Animal fats",g:8,kcal:63}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:42,kcal:160},{name:"Honey",g:10,kcal:30}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:88,kcal:90},{name:"Sweet potato",g:52,kcal:56},{name:"Cassava",g:28,kcal:30}]},
+    {group:"Pulses & nuts", subs:[{name:"Beans (githeri)",g:58,kcal:188},{name:"Lentils",g:22,kcal:71},{name:"Other pulses",g:18,kcal:58}]},
+  ]},
+  {name:"South Korea", region:"Asia", lat:36, lon:128, kcal:2990, protein:98, fat:110, carbs:426,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea/coffee",g:168,kcal:34},{name:"Soft drinks",g:118,kcal:28},{name:"Alcohol/soju",g:44,kcal:13}]},
+    {group:"Cereals",       subs:[{name:"Rice",g:268,kcal:911},{name:"Wheat/ramen",g:62,kcal:201},{name:"Other cereals",g:18,kcal:58}]},
+    {group:"Fruit & veg",   subs:[{name:"Kimchi (napa cabbage)",g:98,kcal:19},{name:"Korean radish (mu)",g:45,kcal:8},{name:"Persimmons",g:38,kcal:24},{name:"Pears (Korean)",g:32,kcal:15},{name:"Enoki/shiitake mushrooms",g:28,kcal:10},{name:"Spinach (sigeumchi)",g:25,kcal:6},{name:"Garlic",g:18,kcal:24}]},
+    {group:"Dairy & eggs",  subs:[{name:"Eggs",g:62,kcal:89},{name:"Milk",g:58,kcal:38},{name:"Yoghurt",g:22,kcal:16},{name:"Cheese",g:6,kcal:22}]},
+    {group:"Meat",          subs:[{name:"Pork (galbi)",g:58,kcal:131},{name:"Poultry",g:48,kcal:105},{name:"Beef",g:22,kcal:52},{name:"Other",g:7,kcal:15}]},
+    {group:"Fats & oils",   subs:[{name:"Sesame oil",g:12,kcal:108},{name:"Veg oils",g:38,kcal:342},{name:"Other",g:5,kcal:40}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:48,kcal:183},{name:"Sweeteners",g:20,kcal:76}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:30,kcal:31},{name:"Sweet potato",g:18,kcal:19}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:38,kcal:74},{name:"Tuna/mackerel",g:22,kcal:43},{name:"Shellfish",g:18,kcal:35}]},
+  ]},
+  {name:"Pakistan", region:"Asia", lat:30, lon:70, kcal:2540, protein:72, fat:78, carbs:410,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea (chai)",g:118,kcal:24},{name:"Lassi",g:28,kcal:9},{name:"Soft drinks",g:14,kcal:3}]},
+    {group:"Cereals",       subs:[{name:"Wheat/roti",g:388,kcal:1259},{name:"Rice",g:55,kcal:187},{name:"Other cereals",g:9,kcal:29}]},
+    {group:"Fruit & veg",   subs:[{name:"Onions",g:55,kcal:22},{name:"Tomatoes",g:48,kcal:10},{name:"Mangoes (Anwari/Chaunsa)",g:38,kcal:23},{name:"Spinach/methi",g:28,kcal:7},{name:"Okra (bhindi)",g:22,kcal:7},{name:"Guava",g:18,kcal:10},{name:"Coriander/chillies",g:14,kcal:4}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk (doodh)",g:208,kcal:135},{name:"Yoghurt/dahi",g:48,kcal:34},{name:"Eggs",g:18,kcal:26},{name:"Butter/desi ghee",g:4,kcal:30}]},
+    {group:"Meat",          subs:[{name:"Beef/mutton",g:32,kcal:75},{name:"Poultry",g:22,kcal:48},{name:"Other",g:8,kcal:17}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils/ghee",g:30,kcal:270},{name:"Desi ghee",g:12,kcal:107}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:58,kcal:221},{name:"Jaggery/gur",g:17,kcal:65}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:40,kcal:41},{name:"Sweet potato",g:12,kcal:13}]},
+    {group:"Pulses & nuts", subs:[{name:"Lentils/masoor",g:28,kcal:91},{name:"Chickpeas",g:18,kcal:59},{name:"Other pulses",g:9,kcal:29}]},
+  ]},
+  {name:"Morocco", region:"Africa", lat:32, lon:-6, kcal:3270, protein:98, fat:98, carbs:518,
+   data:[
+    {group:"Beverages",     subs:[{name:"Mint tea",g:108,kcal:22},{name:"Soft drinks",g:48,kcal:11},{name:"Coffee",g:14,kcal:2}]},
+    {group:"Cereals",       subs:[{name:"Wheat/khobz/couscous",g:398,kcal:1293},{name:"Barley",g:52,kcal:169},{name:"Other cereals",g:22,kcal:71}]},
+    {group:"Fruit & veg",   subs:[{name:"Olives",g:88,kcal:141},{name:"Tomatoes",g:48,kcal:10},{name:"Oranges/clementines",g:45,kcal:21},{name:"Preserved lemons",g:35,kcal:9},{name:"Argan-bearing herbs",g:20,kcal:5},{name:"Dates",g:18,kcal:50},{name:"Pomegranate",g:15,kcal:8}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:78,kcal:51},{name:"Yoghurt/raib",g:38,kcal:27},{name:"Eggs",g:16,kcal:23},{name:"Cheese",g:3,kcal:11}]},
+    {group:"Meat",          subs:[{name:"Lamb (tagine)",g:28,kcal:66},{name:"Poultry",g:24,kcal:53},{name:"Beef",g:10,kcal:24}]},
+    {group:"Fats & oils",   subs:[{name:"Olive oil",g:28,kcal:252},{name:"Argan oil",g:8,kcal:72},{name:"Other veg oils",g:12,kcal:108}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:58,kcal:221},{name:"Honey",g:20,kcal:61}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:38,kcal:39},{name:"Other tubers",g:10,kcal:10}]},
+    {group:"Fish",          subs:[{name:"Sardines/marine fish",g:32,kcal:63},{name:"Other fish",g:10,kcal:20}]},
+    {group:"Pulses & nuts", subs:[{name:"Chickpeas",g:22,kcal:71},{name:"Lentils",g:16,kcal:52},{name:"Almonds",g:14,kcal:81}]},
+  ]},
+  {name:"Spain", region:"Europe", lat:40, lon:-4, kcal:3340, protein:112, fat:148, carbs:392,
+   data:[
+    {group:"Beverages",     subs:[{name:"Wine",g:148,kcal:44},{name:"Soft drinks",g:178,kcal:42},{name:"Coffee",g:98,kcal:11},{name:"Beer",g:46,kcal:14}]},
+    {group:"Cereals",       subs:[{name:"Wheat/pan",g:188,kcal:610},{name:"Rice (paella)",g:52,kcal:177},{name:"Other cereals",g:28,kcal:91}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes (gazpacho base)",g:105,kcal:21},{name:"Peppers (pimiento)",g:55,kcal:13},{name:"Olives",g:45,kcal:55},{name:"Oranges (Valencia)",g:42,kcal:20},{name:"Artichokes",g:28,kcal:14},{name:"Garlic",g:22,kcal:29},{name:"Asparagus",g:18,kcal:4}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:148,kcal:96},{name:"Cheese",g:52,kcal:194},{name:"Yoghurt",g:52,kcal:37},{name:"Eggs",g:38,kcal:54},{name:"Butter",g:8,kcal:59}]},
+    {group:"Meat",          subs:[{name:"Pork/jamón",g:72,kcal:163},{name:"Poultry",g:55,kcal:121},{name:"Beef",g:32,kcal:75},{name:"Other",g:11,kcal:24}]},
+    {group:"Fats & oils",   subs:[{name:"Olive oil",g:65,kcal:585},{name:"Other veg oils",g:17,kcal:153}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:62,kcal:236},{name:"Confectionery",g:20,kcal:76}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:32,kcal:63},{name:"Bacalao/tuna",g:22,kcal:43},{name:"Shellfish",g:14,kcal:27}]},
+    {group:"Pulses & nuts", subs:[{name:"Chickpeas/lentils",g:18,kcal:59},{name:"Almonds/nuts",g:10,kcal:65}]},
+  ]},
+  {name:"Ghana", region:"Africa", lat:8, lon:-1, kcal:2890, protein:68, fat:78, carbs:468,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:65,kcal:15},{name:"Beer/alcohol",g:48,kcal:14},{name:"Tea",g:22,kcal:5}]},
+    {group:"Cereals",       subs:[{name:"Maize",g:148,kcal:481},{name:"Sorghum/millet",g:68,kcal:221},{name:"Rice",g:32,kcal:109}]},
+    {group:"Fruit & veg",   subs:[{name:"Plantain (kelewele)",g:105,kcal:116},{name:"Garden eggs (African eggplant)",g:55,kcal:12},{name:"Tomatoes",g:52,kcal:10},{name:"Kontomire (cocoyam leaf)",g:32,kcal:8},{name:"Pineapple",g:28,kcal:15},{name:"Peppers (shito base)",g:22,kcal:6}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:18,kcal:12},{name:"Eggs",g:12,kcal:17}]},
+    {group:"Meat",          subs:[{name:"Poultry",g:14,kcal:31},{name:"Goat/beef",g:14,kcal:33}]},
+    {group:"Fats & oils",   subs:[{name:"Palm oil",g:38,kcal:342},{name:"Groundnut oil",g:14,kcal:126}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:32,kcal:122},{name:"Honey",g:10,kcal:30}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava (fufu/banku)",g:268,kcal:289},{name:"Yam",g:128,kcal:138},{name:"Cocoyam",g:66,kcal:71}]},
+    {group:"Fish",          subs:[{name:"Tilapia",g:28,kcal:55},{name:"Marine/smoked fish",g:22,kcal:43},{name:"Other",g:12,kcal:23}]},
+    {group:"Pulses & nuts", subs:[{name:"Groundnuts",g:28,kcal:162},{name:"Cowpeas",g:17,kcal:55}]},
+  ]},
+  {name:"Sweden", region:"Europe", lat:60, lon:18, kcal:3020, protein:103, fat:122, carbs:362,
+   data:[
+    {group:"Beverages",     subs:[{name:"Coffee (fika)",g:198,kcal:45},{name:"Soft drinks",g:158,kcal:37},{name:"Beer/alcohol",g:64,kcal:19}]},
+    {group:"Cereals",       subs:[{name:"Wheat/knäckebröd",g:152,kcal:494},{name:"Oats/müsli",g:38,kcal:123},{name:"Rye",g:22,kcal:71},{name:"Other cereals",g:8,kcal:26}]},
+    {group:"Fruit & veg",   subs:[{name:"Lingonberries",g:55,kcal:22},{name:"Blueberries/cloudberries",g:40,kcal:16},{name:"Apples",g:38,kcal:18},{name:"Carrots",g:32,kcal:13},{name:"Swede/turnip",g:25,kcal:7},{name:"Cucumber",g:22,kcal:3},{name:"Tomatoes",g:18,kcal:3}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:198,kcal:129},{name:"Cheese",g:52,kcal:194},{name:"Yoghurt",g:58,kcal:41},{name:"Eggs",g:32,kcal:46},{name:"Butter",g:10,kcal:74}]},
+    {group:"Meat",          subs:[{name:"Pork",g:52,kcal:118},{name:"Poultry",g:48,kcal:105},{name:"Beef",g:32,kcal:75},{name:"Reindeer/game",g:10,kcal:23}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:38,kcal:342},{name:"Butter",g:12,kcal:89}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:48,kcal:183},{name:"Candy/sweets",g:24,kcal:91}]},
+    {group:"Fish",          subs:[{name:"Salmon",g:20,kcal:40},{name:"Herring (sill)",g:14,kcal:28},{name:"Other fish",g:8,kcal:16}]},
+    {group:"Pulses & nuts", subs:[{name:"Pulses",g:8,kcal:26},{name:"Nuts",g:7,kcal:45}]},
+  ]},
+  {name:"Colombia", region:"S. America", lat:4, lon:-72, kcal:2720, protein:78, fat:88, carbs:415,
+   data:[
+    {group:"Beverages",     subs:[{name:"Coffee (tinto)",g:168,kcal:38},{name:"Soft drinks",g:138,kcal:33},{name:"Juice",g:39,kcal:16}]},
+    {group:"Cereals",       subs:[{name:"Wheat/arepa",g:148,kcal:481},{name:"Maize",g:82,kcal:266},{name:"Rice",g:38,kcal:129}]},
+    {group:"Fruit & veg",   subs:[{name:"Plantain (patacones)",g:62,kcal:68},{name:"Tomatoes",g:52,kcal:10},{name:"Feijoa/guanabana",g:42,kcal:27},{name:"Passion fruit (maracuyá)",g:35,kcal:17},{name:"Papaya/mango",g:30,kcal:18},{name:"Arepas pepper/onion",g:22,kcal:8}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:98,kcal:64},{name:"Cheese",g:38,kcal:142},{name:"Eggs",g:42,kcal:60},{name:"Yoghurt",g:17,kcal:12}]},
+    {group:"Meat",          subs:[{name:"Beef",g:48,kcal:113},{name:"Poultry",g:42,kcal:92},{name:"Pork",g:18,kcal:41},{name:"Other",g:7,kcal:15}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:35,kcal:315},{name:"Animal fats",g:13,kcal:103}]},
+    {group:"Sugar",         subs:[{name:"Sugar (panela)",g:82,kcal:312},{name:"Other sweeteners",g:26,kcal:99}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:68,kcal:70},{name:"Yuca/cassava",g:28,kcal:30},{name:"Other tubers",g:9,kcal:9}]},
+    {group:"Pulses & nuts", subs:[{name:"Beans",g:42,kcal:136},{name:"Lentils",g:12,kcal:39},{name:"Other pulses",g:8,kcal:26}]},
+  ]},
+  {name:"Canada", region:"N. America", lat:56, lon:-96, kcal:3480, protein:110, fat:148, carbs:432,
+   data:[
+    {group:"Beverages",     subs:[{name:"Coffee",g:188,kcal:43},{name:"Soft drinks",g:198,kcal:46},{name:"Alcohol",g:104,kcal:31}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread",g:188,kcal:610},{name:"Other cereals",g:62,kcal:201},{name:"Rice",g:30,kcal:102}]},
+    {group:"Fruit & veg",   subs:[{name:"Apples",g:52,kcal:25},{name:"Tomatoes",g:42,kcal:8},{name:"Blueberries (wild)",g:35,kcal:14},{name:"Broccoli/cauliflower",g:32,kcal:11},{name:"Carrots",g:28,kcal:12},{name:"Peaches/cherries",g:22,kcal:10},{name:"Sweet corn",g:18,kcal:16}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:188,kcal:122},{name:"Cheese",g:58,kcal:216},{name:"Yoghurt",g:62,kcal:44},{name:"Eggs",g:38,kcal:54},{name:"Butter",g:14,kcal:104}]},
+    {group:"Meat",          subs:[{name:"Beef/bison",g:82,kcal:193},{name:"Poultry",g:88,kcal:193},{name:"Pork",g:32,kcal:72},{name:"Other",g:8,kcal:17}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:46,kcal:414},{name:"Animal fats",g:16,kcal:126}]},
+    {group:"Sugar",         subs:[{name:"Sugar/maple syrup",g:82,kcal:312},{name:"Sweeteners",g:28,kcal:107}]},
+    {group:"Fish",          subs:[{name:"Salmon",g:16,kcal:32},{name:"Marine fish",g:12,kcal:23},{name:"Other",g:4,kcal:8}]},
+    {group:"Pulses & nuts", subs:[{name:"Canola/lentils",g:18,kcal:72},{name:"Other pulses",g:12,kcal:39},{name:"Nuts",g:5,kcal:33}]},
+  ]},
+  {name:"Poland", region:"Europe", lat:52, lon:20, kcal:3360, protein:109, fat:140, carbs:424,
+   data:[
+    {group:"Beverages",     subs:[{name:"Beer",g:188,kcal:56},{name:"Soft drinks",g:168,kcal:40},{name:"Coffee/tea",g:94,kcal:11}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread",g:188,kcal:610},{name:"Rye bread",g:78,kcal:253},{name:"Buckwheat/kasha",g:32,kcal:104},{name:"Other cereals",g:12,kcal:39}]},
+    {group:"Fruit & veg",   subs:[{name:"Cabbage/sauerkraut (bigos)",g:62,kcal:15},{name:"Beets (barszcz)",g:45,kcal:19},{name:"Apples",g:38,kcal:18},{name:"Mushrooms (borowik/maślak)",g:32,kcal:7},{name:"Carrots/parsley root",g:28,kcal:12},{name:"Strawberries",g:22,kcal:7}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:168,kcal:109},{name:"Cheese",g:48,kcal:179},{name:"Yoghurt",g:48,kcal:34},{name:"Eggs",g:38,kcal:54},{name:"Butter",g:18,kcal:133}]},
+    {group:"Meat",          subs:[{name:"Pork/kiełbasa",g:108,kcal:244},{name:"Poultry",g:52,kcal:114},{name:"Beef",g:22,kcal:52},{name:"Other",g:13,kcal:29}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:40,kcal:360},{name:"Lard",g:18,kcal:162}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:72,kcal:274},{name:"Confectionery",g:23,kcal:88}]},
+    {group:"Roots & tubers",subs:[{name:"Potato (pierogi base)",g:148,kcal:151},{name:"Beet",g:22,kcal:9},{name:"Other",g:10,kcal:10}]},
+    {group:"Fish",          subs:[{name:"Herring",g:12,kcal:24},{name:"Other fish",g:10,kcal:20}]},
+  ]},
+  {name:"Peru", region:"S. America", lat:-10, lon:-76, kcal:2590, protein:78, fat:78, carbs:402,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:148,kcal:35},{name:"Juice",g:108,kcal:43},{name:"Chicha/beer",g:54,kcal:16}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread",g:148,kcal:481},{name:"Rice",g:108,kcal:367},{name:"Quinoa",g:22,kcal:80},{name:"Maize",g:17,kcal:55}]},
+    {group:"Fruit & veg",   subs:[{name:"Ají amarillo/chillies",g:55,kcal:14},{name:"Tomatoes",g:42,kcal:8},{name:"Lucuma/cherimoya",g:35,kcal:28},{name:"Corn (choclo)",g:32,kcal:35},{name:"Mango/passion fruit",g:28,kcal:17},{name:"Ollucos (tuber-veg)",g:22,kcal:12},{name:"Avocado",g:18,kcal:29}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:78,kcal:51},{name:"Eggs",g:38,kcal:54},{name:"Cheese",g:22,kcal:82},{name:"Other",g:7,kcal:5}]},
+    {group:"Meat",          subs:[{name:"Poultry",g:45,kcal:99},{name:"Beef",g:28,kcal:66},{name:"Guinea pig (cuy)",g:12,kcal:28},{name:"Other",g:13,kcal:29}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:30,kcal:270},{name:"Animal fats",g:12,kcal:95}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:72,kcal:274},{name:"Sweeteners",g:23,kcal:88}]},
+    {group:"Roots & tubers",subs:[{name:"Potato (native)",g:118,kcal:121},{name:"Yuca",g:48,kcal:52},{name:"Sweet potato",g:22,kcal:24},{name:"Oca/other",g:10,kcal:10}]},
+    {group:"Fish",          subs:[{name:"Ceviche fish",g:20,kcal:39},{name:"Marine fish",g:18,kcal:35}]},
+  ]},
+  {name:"Iran", region:"Asia", lat:32, lon:53, kcal:3040, protein:92, fat:105, carbs:452,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea (chai)",g:148,kcal:30},{name:"Soft drinks",g:38,kcal:9},{name:"Doogh",g:12,kcal:5}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread/lavash",g:318,kcal:1033},{name:"Rice (polo/chelo)",g:82,kcal:279},{name:"Other cereals",g:18,kcal:58}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:65,kcal:13},{name:"Pomegranate (anar)",g:52,kcal:30},{name:"Cucumber",g:42,kcal:6},{name:"Fresh herbs (sabzi)",g:35,kcal:10},{name:"Onions",g:28,kcal:11},{name:"Cherries/plums",g:22,kcal:13},{name:"Pistachios fruit",g:12,kcal:8}]},
+    {group:"Dairy & eggs",  subs:[{name:"Yoghurt/doogh",g:118,kcal:84},{name:"Milk",g:78,kcal:51},{name:"Eggs",g:30,kcal:43},{name:"Cheese/feta",g:9,kcal:34}]},
+    {group:"Meat",          subs:[{name:"Lamb/beef (kebab)",g:42,kcal:99},{name:"Poultry",g:22,kcal:48},{name:"Other",g:11,kcal:24}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:40,kcal:360},{name:"Animal fats/ghee",g:15,kcal:118}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:75,kcal:286},{name:"Dates/honey",g:23,kcal:88}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:42,kcal:43},{name:"Other tubers",g:10,kcal:10}]},
+    {group:"Pulses & nuts", subs:[{name:"Lentils",g:18,kcal:59},{name:"Chickpeas",g:12,kcal:39},{name:"Pistachios/nuts",g:8,kcal:46}]},
+  ]},
+  {name:"Turkey", region:"Europe", lat:39, lon:35, kcal:3590, protein:112, fat:138, carbs:500,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea (çay)",g:298,kcal:60},{name:"Soft drinks",g:88,kcal:21},{name:"Coffee",g:34,kcal:4}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread/pide",g:348,kcal:1130},{name:"Bulgur/semolina",g:48,kcal:156},{name:"Rice",g:24,kcal:82}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:125,kcal:25},{name:"Eggplant (imam bayildi)",g:55,kcal:13},{name:"Peppers (kapya/sivri)",g:45,kcal:11},{name:"Olives (kalamata/black)",g:38,kcal:46},{name:"Pomegranate",g:30,kcal:17},{name:"Apricots/figs",g:25,kcal:17},{name:"Hazelnut-bearing trees",g:8,kcal:5}]},
+    {group:"Dairy & eggs",  subs:[{name:"Yoghurt",g:148,kcal:105},{name:"Milk",g:88,kcal:57},{name:"White cheese/feta",g:30,kcal:112},{name:"Eggs",g:24,kcal:34}]},
+    {group:"Meat",          subs:[{name:"Lamb/sheep",g:28,kcal:66},{name:"Poultry",g:38,kcal:83},{name:"Beef/köfte",g:18,kcal:42},{name:"Other",g:6,kcal:13}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils/sunflower",g:45,kcal:405},{name:"Olive oil",g:17,kcal:153}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:78,kcal:297},{name:"Lokum/baklava",g:27,kcal:103}]},
+    {group:"Fish",          subs:[{name:"Hamsi/anchovy",g:12,kcal:24},{name:"Other fish",g:10,kcal:20}]},
+    {group:"Pulses & nuts", subs:[{name:"Lentil soup",g:22,kcal:71},{name:"Chickpeas",g:18,kcal:59},{name:"Hazelnuts",g:15,kcal:94}]},
+  ]},
+  {name:"Chile", region:"S. America", lat:-35, lon:-71, kcal:2930, protein:90, fat:108, carbs:400,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:178,kcal:42},{name:"Wine",g:88,kcal:26},{name:"Juice",g:54,kcal:22},{name:"Beer",g:40,kcal:12}]},
+    {group:"Cereals",       subs:[{name:"Wheat/marraqueta",g:228,kcal:740},{name:"Maize/corn",g:48,kcal:156},{name:"Rice",g:22,kcal:75},{name:"Other cereals",g:7,kcal:23}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:52,kcal:10},{name:"Avocado (palta)",g:42,kcal:67},{name:"Grapes/wine grapes",g:38,kcal:26},{name:"Peaches/nectarines",g:30,kcal:14},{name:"Apples",g:25,kcal:12},{name:"Peppers (ají chileno)",g:22,kcal:5},{name:"Blueberries",g:18,kcal:7}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:108,kcal:70},{name:"Cheese",g:42,kcal:157},{name:"Yoghurt",g:48,kcal:34},{name:"Eggs",g:22,kcal:31},{name:"Butter",g:5,kcal:37}]},
+    {group:"Meat",          subs:[{name:"Beef",g:55,kcal:130},{name:"Poultry",g:62,kcal:136},{name:"Pork",g:22,kcal:50},{name:"Other",g:9,kcal:20}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:40,kcal:360},{name:"Animal fats",g:15,kcal:118}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:75,kcal:286},{name:"Manjar/dulce",g:25,kcal:95}]},
+    {group:"Fish",          subs:[{name:"Marine fish",g:22,kcal:43},{name:"Salmon",g:12,kcal:24},{name:"Shellfish",g:8,kcal:15}]},
+    {group:"Pulses & nuts", subs:[{name:"Beans/porotos",g:20,kcal:65},{name:"Nuts",g:10,kcal:65}]},
+  ]},
+  {name:"Saudi Arabia", region:"Asia", lat:24, lon:45, kcal:3280, protein:100, fat:118, carbs:462,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:188,kcal:38},{name:"Soft drinks",g:178,kcal:42},{name:"Coffee (qahwa)",g:62,kcal:8}]},
+    {group:"Cereals",       subs:[{name:"Wheat/khubz",g:248,kcal:805},{name:"Rice (kabsa)",g:98,kcal:333},{name:"Other cereals",g:16,kcal:52}]},
+    {group:"Fruit & veg",   subs:[{name:"Dates (Medjool/Ajwa)",g:72,kcal:201},{name:"Tomatoes",g:42,kcal:8},{name:"Cucumber",g:38,kcal:6},{name:"Pomegranate",g:25,kcal:14},{name:"Figs",g:18,kcal:14},{name:"Onions/garlic",g:15,kcal:6}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:128,kcal:83},{name:"Yoghurt/laban",g:72,kcal:51},{name:"Eggs",g:30,kcal:43},{name:"Cheese",g:8,kcal:30}]},
+    {group:"Meat",          subs:[{name:"Lamb (kabsa)",g:62,kcal:146},{name:"Poultry",g:55,kcal:121},{name:"Beef",g:18,kcal:42},{name:"Camel",g:3,kcal:7}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:45,kcal:405},{name:"Butter/samn",g:17,kcal:126}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:82,kcal:312},{name:"Honey/halwa",g:26,kcal:99}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:38,kcal:39},{name:"Other tubers",g:10,kcal:10}]},
+    {group:"Pulses & nuts", subs:[{name:"Fava beans/ful",g:22,kcal:71},{name:"Nuts/almonds",g:20,kcal:130}]},
+  ]},
+  {name:"Portugal", region:"Europe", lat:39, lon:-8, kcal:3410, protein:112, fat:145, carbs:430,
+   data:[
+    {group:"Beverages",     subs:[{name:"Wine",g:168,kcal:50},{name:"Coffee/espresso",g:118,kcal:14},{name:"Soft drinks",g:138,kcal:33},{name:"Beer",g:38,kcal:11}]},
+    {group:"Cereals",       subs:[{name:"Wheat/broa",g:198,kcal:643},{name:"Rice",g:52,kcal:177},{name:"Maize",g:22,kcal:71}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:75,kcal:15},{name:"Kale/couve (caldo verde)",g:55,kcal:13},{name:"Oranges (Algarve)",g:45,kcal:21},{name:"Olives",g:38,kcal:46},{name:"Figs/persimmons",g:25,kcal:19},{name:"Garlic",g:18,kcal:24},{name:"Peppers/piri piri",g:15,kcal:4}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:138,kcal:90},{name:"Cheese (queijo)",g:52,kcal:194},{name:"Yoghurt",g:48,kcal:34},{name:"Eggs",g:38,kcal:54},{name:"Butter",g:9,kcal:67}]},
+    {group:"Meat",          subs:[{name:"Pork (presunto)",g:68,kcal:154},{name:"Beef",g:42,kcal:99},{name:"Poultry",g:38,kcal:83},{name:"Other",g:10,kcal:22}]},
+    {group:"Fats & oils",   subs:[{name:"Olive oil",g:55,kcal:495},{name:"Other veg oils",g:17,kcal:153}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:65,kcal:248},{name:"Pasteis/sweets",g:20,kcal:76}]},
+    {group:"Fish",          subs:[{name:"Bacalhau (cod)",g:42,kcal:82},{name:"Sardines",g:32,kcal:63},{name:"Other fish",g:21,kcal:41}]},
+    {group:"Pulses & nuts", subs:[{name:"White beans",g:18,kcal:59},{name:"Chickpeas",g:8,kcal:26},{name:"Nuts",g:6,kcal:39}]},
+  ]},
+  {name:"South Africa", region:"Africa", lat:-29, lon:25, kcal:2850, protein:82, fat:88, carbs:430,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:128,kcal:30},{name:"Tea/rooibos",g:88,kcal:18},{name:"Beer/alcohol",g:49,kcal:15}]},
+    {group:"Cereals",       subs:[{name:"Maize/pap",g:248,kcal:805},{name:"Wheat/bread",g:92,kcal:299},{name:"Sorghum/umqombothi",g:25,kcal:81}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:45,kcal:9},{name:"Mealies/sweet corn",g:38,kcal:33},{name:"Butternut squash",g:32,kcal:14},{name:"Mangoes",g:28,kcal:17},{name:"Spinach/morogo",g:25,kcal:6},{name:"Oranges",g:22,kcal:10},{name:"Rooibos berries/buchu",g:8,kcal:2}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:88,kcal:57},{name:"Eggs",g:38,kcal:54},{name:"Cheese",g:28,kcal:104},{name:"Yoghurt",g:11,kcal:8}]},
+    {group:"Meat",          subs:[{name:"Beef/braai",g:52,kcal:122},{name:"Poultry",g:38,kcal:83},{name:"Pork/boerewors",g:18,kcal:41},{name:"Other",g:4,kcal:9}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:33,kcal:297},{name:"Animal fats",g:12,kcal:95}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:72,kcal:274},{name:"Sweeteners",g:23,kcal:88}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:42,kcal:43},{name:"Sweet potato",g:16,kcal:17}]},
+    {group:"Pulses & nuts", subs:[{name:"Beans",g:18,kcal:58},{name:"Other pulses",g:12,kcal:39}]},
+  ]},
+  {name:"New Zealand", region:"Oceania", lat:-41, lon:174, kcal:3120, protein:108, fat:128, carbs:388,
+   data:[
+    {group:"Beverages",     subs:[{name:"Coffee (flat white)",g:178,kcal:41},{name:"Soft drinks",g:188,kcal:44},{name:"Alcohol",g:82,kcal:24}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread",g:162,kcal:526},{name:"Other cereals",g:52,kcal:169},{name:"Rice",g:18,kcal:61}]},
+    {group:"Fruit & veg",   subs:[{name:"Kiwifruit",g:58,kcal:35},{name:"Apples (Braeburn/Gala)",g:45,kcal:22},{name:"Kumara (sweet potato)",g:38,kcal:41},{name:"Tomatoes",g:28,kcal:5},{name:"Feijoa",g:22,kcal:9},{name:"Broccoli/asparagus",g:18,kcal:6},{name:"Pears (Bosc)",g:15,kcal:7}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:198,kcal:129},{name:"Cheese",g:62,kcal:231},{name:"Butter",g:18,kcal:133},{name:"Eggs",g:38,kcal:54},{name:"Yoghurt",g:49,kcal:35}]},
+    {group:"Meat",          subs:[{name:"Lamb (iconic)",g:75,kcal:177},{name:"Beef",g:68,kcal:160},{name:"Poultry",g:42,kcal:92},{name:"Other",g:13,kcal:29}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:42,kcal:378},{name:"Butter",g:18,kcal:133}]},
+    {group:"Sugar",         subs:[{name:"Sugar/honey",g:72,kcal:274},{name:"Manuka honey",g:18,kcal:55},{name:"Other",g:8,kcal:30}]},
+    {group:"Fish",          subs:[{name:"Hoki/snapper",g:16,kcal:31},{name:"Other fish",g:12,kcal:23}]},
+    {group:"Pulses & nuts", subs:[{name:"Pulses",g:14,kcal:45},{name:"Macadamia/nuts",g:8,kcal:52}]},
+  ]},
+  {name:"Philippines", region:"Asia", lat:13, lon:122, kcal:2560, protein:72, fat:72, carbs:418,
+   data:[
+    {group:"Beverages",     subs:[{name:"Soft drinks",g:98,kcal:23},{name:"Coffee/juice",g:68,kcal:22},{name:"Tea",g:29,kcal:6}]},
+    {group:"Cereals",       subs:[{name:"Rice",g:368,kcal:1251},{name:"Wheat/pandesal",g:38,kcal:123},{name:"Maize",g:12,kcal:39}]},
+    {group:"Fruit & veg",   subs:[{name:"Coconut (gata/buko)",g:45,kcal:156},{name:"Mango (carabao)",g:42,kcal:25},{name:"Banana (lakatan/saba)",g:38,kcal:34},{name:"Kangkong (water spinach)",g:30,kcal:6},{name:"Bitter melon (ampalaya)",g:22,kcal:4},{name:"Tomatoes",g:18,kcal:3},{name:"Jackfruit (langka)",g:12,kcal:11}]},
+    {group:"Dairy & eggs",  subs:[{name:"Eggs",g:32,kcal:46},{name:"Milk (condensed)",g:18,kcal:11},{name:"Other",g:8,kcal:5}]},
+    {group:"Meat",          subs:[{name:"Pork (lechon/adobo)",g:38,kcal:86},{name:"Poultry",g:22,kcal:48},{name:"Other",g:8,kcal:18}]},
+    {group:"Fats & oils",   subs:[{name:"Coconut oil",g:22,kcal:198},{name:"Veg oils",g:16,kcal:144}]},
+    {group:"Sugar",         subs:[{name:"Sugar (cane)",g:58,kcal:221},{name:"Sweeteners",g:20,kcal:76}]},
+    {group:"Roots & tubers",subs:[{name:"Sweet potato/camote",g:22,kcal:24},{name:"Cassava/kamoteng",g:14,kcal:15},{name:"Other",g:6,kcal:6}]},
+    {group:"Fish",          subs:[{name:"Milkfish/bangus",g:38,kcal:74},{name:"Marine fish",g:30,kcal:59},{name:"Shellfish",g:17,kcal:33}]},
+  ]},
+  {name:"Bangladesh", region:"Asia", lat:24, lon:90, kcal:2480, protein:62, fat:52, carbs:480,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:52,kcal:11},{name:"Soft drinks",g:8,kcal:2}]},
+    {group:"Cereals",       subs:[{name:"Rice",g:428,kcal:1455},{name:"Wheat/roti",g:58,kcal:188},{name:"Other cereals",g:12,kcal:39}]},
+    {group:"Fruit & veg",   subs:[{name:"Onions",g:45,kcal:18},{name:"Mustard greens/shak",g:38,kcal:9},{name:"Jackfruit (kathal)",g:30,kcal:28},{name:"Banana",g:25,kcal:22},{name:"Tomatoes",g:22,kcal:4},{name:"Bitter gourd/lau",g:18,kcal:4},{name:"Turmeric/ginger",g:10,kcal:8}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:48,kcal:31},{name:"Eggs",g:24,kcal:34},{name:"Yoghurt/doi",g:6,kcal:4}]},
+    {group:"Meat",          subs:[{name:"Poultry",g:8,kcal:18},{name:"Beef/mutton",g:4,kcal:9}]},
+    {group:"Fats & oils",   subs:[{name:"Mustard oil",g:18,kcal:162},{name:"Other veg oils",g:10,kcal:90}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:32,kcal:122},{name:"Gur/jaggery",g:13,kcal:50}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:28,kcal:29},{name:"Sweet potato",g:7,kcal:7}]},
+    {group:"Fish",          subs:[{name:"Hilsa/freshwater fish",g:38,kcal:74},{name:"Marine fish",g:14,kcal:27},{name:"Shrimp",g:6,kcal:12}]},
+    {group:"Pulses & nuts", subs:[{name:"Lentils/masoor",g:18,kcal:58},{name:"Other dal",g:12,kcal:39}]},
+  ]},
+  {name:"Kazakhstan", region:"Asia", lat:48, lon:68, kcal:3120, protein:105, fat:122, carbs:415,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:168,kcal:34},{name:"Kumiss/kefir",g:98,kcal:29},{name:"Soft drinks",g:32,kcal:8}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread",g:298,kcal:968},{name:"Rice",g:48,kcal:163},{name:"Other cereals",g:22,kcal:71}]},
+    {group:"Fruit & veg",   subs:[{name:"Onions",g:55,kcal:22},{name:"Carrots",g:38,kcal:16},{name:"Apples",g:35,kcal:17},{name:"Watermelon/melon",g:30,kcal:9},{name:"Tomatoes",g:25,kcal:5},{name:"Apricots/peaches",g:18,kcal:11}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:188,kcal:122},{name:"Kumiss",g:88,kcal:57},{name:"Cheese",g:38,kcal:142},{name:"Eggs",g:34,kcal:49},{name:"Butter",g:0,kcal:0}]},
+    {group:"Meat",          subs:[{name:"Horse/beshbarmak",g:82,kcal:193},{name:"Beef",g:58,kcal:137},{name:"Lamb",g:28,kcal:66},{name:"Other",g:10,kcal:22}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils",g:38,kcal:342},{name:"Animal fats",g:14,kcal:110}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:65,kcal:248},{name:"Sweeteners",g:20,kcal:76}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:95,kcal:97},{name:"Other tubers",g:20,kcal:20}]},
+    {group:"Fish",          subs:[{name:"Carp/freshwater fish",g:12,kcal:23},{name:"Other fish",g:6,kcal:12}]},
+  ]},
+  {name:"Tanzania", region:"Africa", lat:-6, lon:35, kcal:2060, protein:55, fat:42, carbs:418,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:28,kcal:6},{name:"Other",g:20,kcal:5}]},
+    {group:"Cereals",       subs:[{name:"Maize/ugali",g:258,kcal:838},{name:"Sorghum/millet",g:88,kcal:286},{name:"Rice",g:42,kcal:143}]},
+    {group:"Fruit & veg",   subs:[{name:"Plantain/ndizi",g:58,kcal:64},{name:"Mchicha (amaranth greens)",g:38,kcal:9},{name:"Tomatoes",g:28,kcal:6},{name:"Mangoes",g:22,kcal:13},{name:"Coconut",g:18,kcal:62},{name:"Pineapple",g:12,kcal:6}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:16,kcal:10},{name:"Eggs",g:6,kcal:9}]},
+    {group:"Meat",          subs:[{name:"Beef/goat (nyama)",g:18,kcal:42},{name:"Poultry",g:10,kcal:22},{name:"Other",g:4,kcal:9}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils/coconut",g:20,kcal:180},{name:"Animal fats",g:8,kcal:63}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:28,kcal:107},{name:"Honey",g:10,kcal:30}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava",g:148,kcal:160},{name:"Yam",g:82,kcal:88},{name:"Sweet potato",g:55,kcal:59}]},
+    {group:"Fish",          subs:[{name:"Tilapia/Nile perch",g:18,kcal:35},{name:"Dried fish dagaa",g:10,kcal:20}]},
+    {group:"Pulses & nuts", subs:[{name:"Beans/maharagwe",g:52,kcal:168},{name:"Groundnuts",g:22,kcal:127},{name:"Cowpeas",g:18,kcal:58}]},
+  ]},
+  {name:"Algeria", region:"Africa", lat:28, lon:3, kcal:3290, protein:100, fat:100, carbs:518,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:98,kcal:20},{name:"Coffee",g:58,kcal:7},{name:"Soft drinks",g:22,kcal:5}]},
+    {group:"Cereals",       subs:[{name:"Wheat/semolina/couscous",g:378,kcal:1228},{name:"Barley",g:78,kcal:253},{name:"Other cereals",g:42,kcal:136}]},
+    {group:"Fruit & veg",   subs:[{name:"Tomatoes",g:85,kcal:17},{name:"Onions",g:48,kcal:19},{name:"Olives",g:38,kcal:46},{name:"Figs/dates",g:28,kcal:21},{name:"Oranges/clementines",g:25,kcal:12},{name:"Eggplant/zucchini",g:22,kcal:5}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk/lben",g:118,kcal:77},{name:"Yoghurt/raib",g:48,kcal:34},{name:"Eggs",g:22,kcal:31},{name:"Cheese",g:4,kcal:15}]},
+    {group:"Meat",          subs:[{name:"Lamb (merguez)",g:32,kcal:75},{name:"Poultry",g:28,kcal:62},{name:"Beef",g:8,kcal:19}]},
+    {group:"Fats & oils",   subs:[{name:"Veg oils/sunflower",g:35,kcal:315},{name:"Butter/smen",g:13,kcal:96}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:68,kcal:259},{name:"Honey/sweets",g:20,kcal:61}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:35,kcal:36},{name:"Other tubers",g:10,kcal:10}]},
+    {group:"Pulses & nuts", subs:[{name:"Chickpeas",g:22,kcal:71},{name:"Lentils",g:14,kcal:45},{name:"Dates",g:6,kcal:17}]},
+  ]},
+  {name:"Ukraine", region:"Europe", lat:49, lon:32, kcal:2780, protein:88, fat:100, carbs:395,
+   data:[
+    {group:"Beverages",     subs:[{name:"Tea",g:148,kcal:30},{name:"Soft drinks",g:118,kcal:28},{name:"Beer/horilka",g:44,kcal:13}]},
+    {group:"Cereals",       subs:[{name:"Wheat/bread",g:238,kcal:773},{name:"Buckwheat/kasha",g:82,kcal:266},{name:"Barley/oats",g:32,kcal:104},{name:"Maize",g:18,kcal:58}]},
+    {group:"Fruit & veg",   subs:[{name:"Beets (borshch base)",g:68,kcal:29},{name:"Cabbage (varenyky filling)",g:58,kcal:15},{name:"Tomatoes",g:52,kcal:10},{name:"Sunflower (horilka seeds)",g:22,kcal:64},{name:"Apples",g:20,kcal:10},{name:"Cherries (vyshnia)",g:18,kcal:9},{name:"Horseradish",g:10,kcal:4}]},
+    {group:"Dairy & eggs",  subs:[{name:"Milk",g:148,kcal:96},{name:"Sour cream/smetana",g:62,kcal:113},{name:"Cheese",g:32,kcal:119},{name:"Eggs",g:38,kcal:54},{name:"Butter",g:10,kcal:74}]},
+    {group:"Meat",          subs:[{name:"Pork",g:55,kcal:124},{name:"Poultry",g:38,kcal:83},{name:"Beef",g:22,kcal:52},{name:"Other",g:5,kcal:11}]},
+    {group:"Fats & oils",   subs:[{name:"Sunflower oil",g:32,kcal:288},{name:"Animal fats/lard",g:13,kcal:103}]},
+    {group:"Sugar",         subs:[{name:"Sugar",g:65,kcal:248},{name:"Sweeteners",g:20,kcal:76}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:135,kcal:138},{name:"Other roots",g:30,kcal:31}]},
+    {group:"Fish",          subs:[{name:"Carp/freshwater fish",g:10,kcal:20},{name:"Herring",g:5,kcal:10}]},
+  ]},
+
+  {name:"Malaysia",region:"Asia",lat:4,lon:109,kcal:2930,protein:82,fat:105,carbs:408,
+   data:[
+    {group:"Beverages",subs:[{name:"Teh tarik (pulled tea)",g:148,kcal:52},{name:"Soft drinks",g:72,kcal:17},{name:"Kopi (local coffee)",g:38,kcal:10}]},
+    {group:"Cereals",subs:[{name:"Rice (nasi)",g:328,kcal:1115},{name:"Wheat/noodles (mee)",g:42,kcal:136},{name:"Other cereals",g:12,kcal:39}]},
+    {group:"Fruit & veg",subs:[{name:"Durian",g:38,kcal:52},{name:"Rambutan/langsat",g:32,kcal:21},{name:"Chillies/belacan herbs",g:28,kcal:7},{name:"Banana",g:25,kcal:22},{name:"Papaya",g:18,kcal:7}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:38,kcal:54},{name:"Condensed milk",g:22,kcal:66},{name:"Coconut milk",g:18,kcal:37}]},
+    {group:"Meat",subs:[{name:"Poultry (ayam)",g:62,kcal:136},{name:"Beef (rendang)",g:18,kcal:42},{name:"Other",g:8,kcal:18}]},
+    {group:"Fats & oils",subs:[{name:"Palm oil",g:42,kcal:378},{name:"Coconut oil",g:12,kcal:108}]},
+    {group:"Sugar",subs:[{name:"Sugar (cane)",g:55,kcal:210},{name:"Palm sugar",g:15,kcal:57}]},
+    {group:"Roots & tubers",subs:[{name:"Tapioca/cassava",g:32,kcal:34},{name:"Sweet potato",g:12,kcal:13}]},
+    {group:"Fish",subs:[{name:"Marine fish",g:45,kcal:88},{name:"Anchovies (ikan bilis)",g:22,kcal:43},{name:"Shellfish/prawns",g:12,kcal:23}]},
+    {group:"Pulses & nuts",subs:[{name:"Groundnuts",g:18,kcal:104},{name:"Tofu/tempeh",g:14,kcal:28}]},
+  ]},
+  {name:"Singapore",region:"Asia",lat:1,lon:104,kcal:2880,protein:80,fat:102,carbs:402,
+   data:[
+    {group:"Beverages",subs:[{name:"Kopi/teh (hawker coffee)",g:158,kcal:55},{name:"Soft drinks",g:88,kcal:21},{name:"Barley water",g:32,kcal:8}]},
+    {group:"Cereals",subs:[{name:"Rice",g:318,kcal:1081},{name:"Wheat/noodles",g:48,kcal:156},{name:"Other cereals",g:12,kcal:39}]},
+    {group:"Fruit & veg",subs:[{name:"Chillies/sambal",g:32,kcal:8},{name:"Beansprouts",g:28,kcal:8},{name:"Banana/tropical fruit",g:25,kcal:22},{name:"Kangkong",g:18,kcal:3}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs (soft-boiled kaya toast)",g:45,kcal:64},{name:"Condensed milk",g:25,kcal:75},{name:"Coconut milk",g:15,kcal:31}]},
+    {group:"Meat",subs:[{name:"Pork (char siu/siu yuk)",g:45,kcal:102},{name:"Poultry",g:42,kcal:92},{name:"Other",g:8,kcal:18}]},
+    {group:"Fats & oils",subs:[{name:"Palm oil",g:38,kcal:342},{name:"Veg oils",g:14,kcal:126}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:52,kcal:198},{name:"Kaya jam",g:15,kcal:42}]},
+    {group:"Fish",subs:[{name:"Marine fish",g:42,kcal:82},{name:"Shellfish",g:18,kcal:35},{name:"Dried fish",g:8,kcal:16}]},
+    {group:"Pulses & nuts",subs:[{name:"Tofu",g:18,kcal:14},{name:"Peanuts",g:12,kcal:69}]},
+  ]},
+  {name:"Sri Lanka",region:"Asia",lat:8,lon:81,kcal:2460,protein:60,fat:70,carbs:412,
+   data:[
+    {group:"Beverages",subs:[{name:"Ceylon tea",g:168,kcal:34},{name:"Soft drinks",g:28,kcal:7},{name:"Coconut water",g:22,kcal:9}]},
+    {group:"Cereals",subs:[{name:"Rice",g:342,kcal:1163},{name:"Wheat/hoppers flour",g:55,kcal:179},{name:"Other cereals",g:8,kcal:26}]},
+    {group:"Fruit & veg",subs:[{name:"Coconut (scraped)",g:42,kcal:146},{name:"Plantain/banana",g:35,kcal:31},{name:"Tomatoes",g:25,kcal:5},{name:"Drumstick/moringa",g:18,kcal:6},{name:"Mango",g:15,kcal:9}]},
+    {group:"Dairy & eggs",subs:[{name:"Coconut milk (kiribath)",g:35,kcal:72},{name:"Eggs",g:22,kcal:31},{name:"Milk",g:18,kcal:12}]},
+    {group:"Meat",subs:[{name:"Poultry",g:22,kcal:48},{name:"Beef/mutton",g:12,kcal:28},{name:"Other",g:5,kcal:11}]},
+    {group:"Fats & oils",subs:[{name:"Coconut oil",g:28,kcal:252},{name:"Veg oils",g:14,kcal:126}]},
+    {group:"Sugar",subs:[{name:"Sugar/treacle",g:52,kcal:198},{name:"Jaggery",g:15,kcal:57}]},
+    {group:"Fish",subs:[{name:"Marine fish",g:42,kcal:82},{name:"Maldive fish (dried)",g:18,kcal:35},{name:"Freshwater fish",g:8,kcal:16}]},
+    {group:"Pulses & nuts",subs:[{name:"Lentils/dhal",g:28,kcal:91},{name:"Coconut",g:18,kcal:62},{name:"Cashews",g:8,kcal:44}]},
+  ]},
+  {name:"Iraq",region:"Asia",lat:33,lon:44,kcal:3120,protein:92,fat:105,carbs:472,
+   data:[
+    {group:"Beverages",subs:[{name:"Tea (chai)",g:188,kcal:38},{name:"Soft drinks",g:48,kcal:11},{name:"Sharbat",g:18,kcal:7}]},
+    {group:"Cereals",subs:[{name:"Wheat/samoon bread",g:342,kcal:1110},{name:"Rice (timman)",g:98,kcal:333},{name:"Other cereals",g:15,kcal:49}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:72,kcal:14},{name:"Dates (tamr)",g:62,kcal:173},{name:"Onions/garlic",g:42,kcal:17},{name:"Eggplant",g:28,kcal:7},{name:"Pomegranate",g:18,kcal:10}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:38,kcal:54},{name:"Milk",g:88,kcal:57},{name:"Cheese",g:22,kcal:82}]},
+    {group:"Meat",subs:[{name:"Lamb (quzi/tepsi)",g:55,kcal:130},{name:"Beef",g:28,kcal:66},{name:"Poultry",g:22,kcal:48}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:42,kcal:378},{name:"Ghee/samn",g:15,kcal:118}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:78,kcal:297},{name:"Dates syrup/dibs",g:22,kcal:63}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:52,kcal:53},{name:"Other tubers",g:12,kcal:12}]},
+    {group:"Pulses & nuts",subs:[{name:"Lentils",g:18,kcal:59},{name:"Chickpeas",g:15,kcal:49},{name:"Walnuts/pistachios",g:10,kcal:65}]},
+  ]},
+  {name:"Jordan",region:"Asia",lat:31,lon:36,kcal:3090,protein:92,fat:108,carbs:455,
+   data:[
+    {group:"Beverages",subs:[{name:"Tea/sage tea",g:168,kcal:34},{name:"Soft drinks",g:52,kcal:12},{name:"Arabic coffee (qahwa)",g:30,kcal:4}]},
+    {group:"Cereals",subs:[{name:"Wheat/khubz",g:318,kcal:1033},{name:"Rice",g:78,kcal:265},{name:"Other cereals",g:18,kcal:58}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:75,kcal:15},{name:"Cucumber",g:55,kcal:8},{name:"Olives",g:42,kcal:51},{name:"Citrus/oranges",g:35,kcal:17},{name:"Onions",g:22,kcal:9}]},
+    {group:"Dairy & eggs",subs:[{name:"Labneh (strained yoghurt)",g:65,kcal:78},{name:"Milk",g:55,kcal:36},{name:"Eggs",g:28,kcal:40},{name:"Cheese",g:12,kcal:45}]},
+    {group:"Meat",subs:[{name:"Lamb/chicken mansaf",g:48,kcal:113},{name:"Poultry",g:28,kcal:62},{name:"Other",g:8,kcal:18}]},
+    {group:"Fats & oils",subs:[{name:"Olive oil",g:38,kcal:342},{name:"Veg oils",g:22,kcal:198}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:72,kcal:274},{name:"Honey/sweets",g:20,kcal:61}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:42,kcal:43},{name:"Other",g:8,kcal:8}]},
+    {group:"Pulses & nuts",subs:[{name:"Fava beans/ful",g:25,kcal:81},{name:"Chickpeas (hummus)",g:22,kcal:71},{name:"Lentils",g:12,kcal:39}]},
+  ]},
+  {name:"Lebanon",region:"Asia",lat:34,lon:36,kcal:3280,protein:98,fat:120,carbs:462,
+   data:[
+    {group:"Beverages",subs:[{name:"Arak/wine",g:65,kcal:22},{name:"Arabic coffee",g:55,kcal:7},{name:"Soft drinks",g:52,kcal:12},{name:"Jallab juice",g:25,kcal:10}]},
+    {group:"Cereals",subs:[{name:"Wheat/pita bread",g:282,kcal:916},{name:"Bulgur (tabbouleh base)",g:52,kcal:169},{name:"Rice",g:38,kcal:129}]},
+    {group:"Fruit & veg",subs:[{name:"Parsley/herbs (tabbouleh)",g:65,kcal:15},{name:"Tomatoes",g:58,kcal:12},{name:"Cucumber",g:45,kcal:7},{name:"Olives",g:35,kcal:43},{name:"Pomegranate",g:28,kcal:14}]},
+    {group:"Dairy & eggs",subs:[{name:"Labneh",g:72,kcal:86},{name:"Halloumi/akkawi cheese",g:38,kcal:142},{name:"Eggs",g:28,kcal:40},{name:"Milk",g:22,kcal:14}]},
+    {group:"Meat",subs:[{name:"Lamb (kibbeh/kafta)",g:42,kcal:99},{name:"Poultry",g:35,kcal:77},{name:"Other",g:8,kcal:18}]},
+    {group:"Fats & oils",subs:[{name:"Olive oil",g:62,kcal:558},{name:"Tahini (sesame)",g:18,kcal:162}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:68,kcal:259},{name:"Baklava/sweets",g:22,kcal:84}]},
+    {group:"Pulses & nuts",subs:[{name:"Chickpeas (hummus/falafel)",g:38,kcal:123},{name:"Lentils (mujaddara)",g:22,kcal:71},{name:"Pine nuts",g:10,kcal:68}]},
+  ]},
+  {name:"Israel",region:"Asia",lat:31,lon:35,kcal:3540,protein:115,fat:148,carbs:468,
+   data:[
+    {group:"Beverages",subs:[{name:"Coffee/espresso",g:118,kcal:14},{name:"Soft drinks",g:148,kcal:35},{name:"Wine",g:48,kcal:14}]},
+    {group:"Cereals",subs:[{name:"Wheat/challah/pita",g:285,kcal:925},{name:"Rice",g:55,kcal:187},{name:"Other cereals",g:25,kcal:81}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes (Israeli salad)",g:85,kcal:17},{name:"Cucumber",g:62,kcal:9},{name:"Avocado",g:42,kcal:67},{name:"Pomelo/citrus",g:38,kcal:18},{name:"Bell peppers",g:28,kcal:7}]},
+    {group:"Dairy & eggs",subs:[{name:"Cottage cheese (gevina levana)",g:78,kcal:62},{name:"Milk",g:68,kcal:44},{name:"Eggs",g:42,kcal:60},{name:"Hard cheese",g:25,kcal:93}]},
+    {group:"Meat",subs:[{name:"Poultry (schnitzel)",g:82,kcal:180},{name:"Beef",g:38,kcal:90},{name:"Other",g:8,kcal:18}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:55,kcal:495},{name:"Olive oil",g:22,kcal:198}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:72,kcal:274},{name:"Honey (Rosh Hashana)",g:22,kcal:67}]},
+    {group:"Pulses & nuts",subs:[{name:"Chickpeas (hummus/falafel)",g:42,kcal:136},{name:"Lentils",g:18,kcal:58},{name:"Sunflower seeds",g:12,kcal:66}]},
+  ]},
+  {name:"Hungary",region:"Europe",lat:47,lon:19,kcal:3290,protein:105,fat:138,carbs:420,
+   data:[
+    {group:"Beverages",subs:[{name:"Palinka/spirits",g:45,kcal:99},{name:"Beer",g:148,kcal:44},{name:"Coffee/tea",g:88,kcal:10},{name:"Soft drinks",g:98,kcal:23}]},
+    {group:"Cereals",subs:[{name:"Wheat/bread/langos",g:285,kcal:925},{name:"Barley",g:28,kcal:91},{name:"Maize",g:22,kcal:71},{name:"Other cereals",g:15,kcal:49}]},
+    {group:"Fruit & veg",subs:[{name:"Paprika (red pepper — iconic)",g:72,kcal:18},{name:"Tomatoes",g:48,kcal:10},{name:"Cabbage",g:38,kcal:9},{name:"Apricots (Barack)",g:32,kcal:15},{name:"Plums",g:22,kcal:15}]},
+    {group:"Dairy & eggs",subs:[{name:"Sour cream (tejfol)",g:72,kcal:131},{name:"Milk",g:98,kcal:64},{name:"Cheese",g:38,kcal:142},{name:"Eggs",g:32,kcal:46}]},
+    {group:"Meat",subs:[{name:"Pork (gulyas base)",g:88,kcal:199},{name:"Beef",g:32,kcal:75},{name:"Poultry",g:28,kcal:62},{name:"Goose liver",g:12,kcal:44}]},
+    {group:"Fats & oils",subs:[{name:"Lard/zsir (traditional)",g:35,kcal:315},{name:"Veg oils",g:28,kcal:252}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:72,kcal:274},{name:"Honey/sweets",g:18,kcal:55}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:115,kcal:117},{name:"Other",g:15,kcal:15}]},
+    {group:"Fish",subs:[{name:"Freshwater fish (fogash/carp)",g:18,kcal:35},{name:"Other",g:6,kcal:12}]},
+  ]},
+  {name:"Czech Republic",region:"Europe",lat:50,lon:16,kcal:3270,protein:105,fat:138,carbs:408,
+   data:[
+    {group:"Beverages",subs:[{name:"Beer (Pilsner — world record)",g:312,kcal:93},{name:"Soft drinks",g:98,kcal:23},{name:"Coffee",g:55,kcal:6}]},
+    {group:"Cereals",subs:[{name:"Wheat/bread/knedliky",g:265,kcal:860},{name:"Rye",g:38,kcal:123},{name:"Other cereals",g:22,kcal:71}]},
+    {group:"Fruit & veg",subs:[{name:"Cabbage/sauerkraut",g:55,kcal:14},{name:"Tomatoes",g:38,kcal:7},{name:"Apples",g:35,kcal:17},{name:"Carrots",g:28,kcal:12},{name:"Mushrooms",g:22,kcal:5}]},
+    {group:"Dairy & eggs",subs:[{name:"Milk",g:148,kcal:96},{name:"Cheese (tvarusky)",g:48,kcal:179},{name:"Sour cream",g:42,kcal:77},{name:"Eggs",g:32,kcal:46}]},
+    {group:"Meat",subs:[{name:"Pork (svickova/knedlo)",g:95,kcal:215},{name:"Beef",g:35,kcal:82},{name:"Poultry",g:28,kcal:62}]},
+    {group:"Fats & oils",subs:[{name:"Lard",g:30,kcal:270},{name:"Veg oils",g:28,kcal:252}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:72,kcal:274},{name:"Pastry/kolache",g:18,kcal:68}]},
+    {group:"Roots & tubers",subs:[{name:"Potato (bramboraky)",g:115,kcal:117},{name:"Other",g:12,kcal:12}]},
+  ]},
+  {name:"Austria",region:"Europe",lat:47,lon:14,kcal:3360,protein:108,fat:142,carbs:418,
+   data:[
+    {group:"Beverages",subs:[{name:"Coffee (Viennese cafe culture)",g:145,kcal:17},{name:"Beer",g:138,kcal:41},{name:"Wine",g:78,kcal:23},{name:"Soft drinks",g:85,kcal:20}]},
+    {group:"Cereals",subs:[{name:"Wheat/Semmel/Kipferl",g:255,kcal:828},{name:"Rye bread",g:45,kcal:146},{name:"Other cereals",g:22,kcal:71}]},
+    {group:"Fruit & veg",subs:[{name:"Apples (Styrian)",g:52,kcal:25},{name:"Pumpkin (Styrian)",g:38,kcal:10},{name:"Tomatoes",g:35,kcal:7},{name:"Apricots (Wachau)",g:28,kcal:13},{name:"Onions",g:18,kcal:7}]},
+    {group:"Dairy & eggs",subs:[{name:"Milk",g:158,kcal:103},{name:"Butter",g:18,kcal:133},{name:"Cheese",g:48,kcal:179},{name:"Eggs",g:32,kcal:46}]},
+    {group:"Meat",subs:[{name:"Pork/Schnitzel (Wiener)",g:78,kcal:176},{name:"Beef (Tafelspitz)",g:38,kcal:90},{name:"Poultry",g:32,kcal:70}]},
+    {group:"Fats & oils",subs:[{name:"Butter",g:22,kcal:163},{name:"Pumpkin seed oil",g:18,kcal:162},{name:"Veg oils",g:22,kcal:198}]},
+    {group:"Sugar",subs:[{name:"Sugar/Sachertorte",g:68,kcal:259},{name:"Honey",g:15,kcal:46}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:98,kcal:100},{name:"Other",g:12,kcal:12}]},
+  ]},
+  {name:"Belgium",region:"Europe",lat:51,lon:4,kcal:3560,protein:118,fat:158,carbs:428,
+   data:[
+    {group:"Beverages",subs:[{name:"Beer (Trappist/lambic)",g:225,kcal:67},{name:"Coffee",g:118,kcal:14},{name:"Soft drinks",g:88,kcal:21}]},
+    {group:"Cereals",subs:[{name:"Wheat/bread",g:235,kcal:763},{name:"Waffle flour",g:48,kcal:156},{name:"Other cereals",g:22,kcal:71}]},
+    {group:"Fruit & veg",subs:[{name:"Belgian endive (witloof)",g:55,kcal:10},{name:"Brussels sprouts",g:42,kcal:15},{name:"Tomatoes",g:38,kcal:7},{name:"Leeks",g:28,kcal:9},{name:"Apples/pears",g:30,kcal:14}]},
+    {group:"Dairy & eggs",subs:[{name:"Butter",g:22,kcal:163},{name:"Milk",g:148,kcal:96},{name:"Cheese",g:55,kcal:205},{name:"Eggs",g:32,kcal:46}]},
+    {group:"Meat",subs:[{name:"Pork",g:78,kcal:176},{name:"Beef (carbonnade base)",g:52,kcal:122},{name:"Poultry (waterzooi base)",g:42,kcal:92}]},
+    {group:"Fats & oils",subs:[{name:"Butter",g:28,kcal:207},{name:"Veg oils/frites oil",g:35,kcal:315}]},
+    {group:"Sugar",subs:[{name:"Chocolate/pralines",g:28,kcal:154},{name:"Sugar/speculoos",g:58,kcal:221}]},
+    {group:"Fish",subs:[{name:"Moules/mussels",g:22,kcal:26},{name:"North Sea fish",g:15,kcal:29}]},
+  ]},
+  {name:"Netherlands",region:"Europe",lat:52,lon:5,kcal:3300,protein:108,fat:142,carbs:398,
+   data:[
+    {group:"Beverages",subs:[{name:"Coffee",g:178,kcal:21},{name:"Beer",g:138,kcal:41},{name:"Soft drinks",g:98,kcal:23}]},
+    {group:"Cereals",subs:[{name:"Wheat/brood",g:232,kcal:753},{name:"Rye/spelt",g:35,kcal:114},{name:"Other cereals",g:20,kcal:65}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes (greenhouse)",g:65,kcal:13},{name:"Bell peppers",g:45,kcal:11},{name:"Onions",g:38,kcal:15},{name:"Apples/pears",g:35,kcal:16},{name:"Endive",g:22,kcal:4}]},
+    {group:"Dairy & eggs",subs:[{name:"Cheese (Gouda/Edam)",g:72,kcal:268},{name:"Milk",g:168,kcal:109},{name:"Butter",g:15,kcal:111},{name:"Eggs",g:28,kcal:40}]},
+    {group:"Meat",subs:[{name:"Pork",g:72,kcal:163},{name:"Poultry",g:52,kcal:114},{name:"Beef",g:28,kcal:66}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils/margarine",g:48,kcal:432},{name:"Butter",g:18,kcal:133}]},
+    {group:"Sugar",subs:[{name:"Sugar/stroopwafel",g:68,kcal:259},{name:"Chocolate/hagelslag",g:18,kcal:99}]},
+    {group:"Fish",subs:[{name:"Herring (Hollandse Nieuwe)",g:22,kcal:43},{name:"North Sea fish",g:15,kcal:29}]},
+  ]},
+  {name:"Switzerland",region:"Europe",lat:47,lon:8,kcal:3360,protein:110,fat:145,carbs:408,
+   data:[
+    {group:"Beverages",subs:[{name:"Coffee",g:155,kcal:18},{name:"Wine",g:78,kcal:23},{name:"Beer",g:88,kcal:26},{name:"Soft drinks",g:68,kcal:16}]},
+    {group:"Cereals",subs:[{name:"Wheat/bread/Rosti flour",g:242,kcal:786},{name:"Muesli grains",g:42,kcal:136},{name:"Other cereals",g:22,kcal:71}]},
+    {group:"Fruit & veg",subs:[{name:"Apples",g:52,kcal:25},{name:"Tomatoes",g:38,kcal:7},{name:"Onions (Rosti base)",g:35,kcal:14},{name:"Cherries (Kirsch base)",g:28,kcal:13},{name:"Mushrooms",g:18,kcal:4}]},
+    {group:"Dairy & eggs",subs:[{name:"Cheese (Gruyere/Emmental)",g:65,kcal:242},{name:"Milk",g:158,kcal:103},{name:"Butter",g:18,kcal:133},{name:"Eggs",g:30,kcal:43}]},
+    {group:"Meat",subs:[{name:"Veal (Zurcher Geschnetzeltes)",g:42,kcal:99},{name:"Pork",g:52,kcal:118},{name:"Poultry",g:35,kcal:77}]},
+    {group:"Fats & oils",subs:[{name:"Butter",g:22,kcal:163},{name:"Veg oils",g:35,kcal:315}]},
+    {group:"Sugar",subs:[{name:"Chocolate (Lindt/Toblerone)",g:28,kcal:154},{name:"Sugar",g:58,kcal:221}]},
+    {group:"Fish",subs:[{name:"Lake fish (perch/trout)",g:18,kcal:35},{name:"Other",g:8,kcal:16}]},
+  ]},
+  {name:"Bolivia",region:"S. America",lat:-17,lon:-65,kcal:2250,protein:65,fat:65,carbs:388,
+   data:[
+    {group:"Beverages",subs:[{name:"Chicha morada/maize beer",g:98,kcal:30},{name:"Soft drinks",g:68,kcal:16},{name:"Singani spirit",g:22,kcal:48}]},
+    {group:"Cereals",subs:[{name:"Maize (choclo)",g:185,kcal:600},{name:"Wheat/bread",g:118,kcal:383},{name:"Quinoa",g:38,kcal:138},{name:"Other cereals",g:12,kcal:39}]},
+    {group:"Fruit & veg",subs:[{name:"Potato (native varieties)",g:88,kcal:90},{name:"Tomatoes",g:38,kcal:8},{name:"Peppers (locoto)",g:28,kcal:7},{name:"Banana/plantain",g:22,kcal:20},{name:"Cactus fruit (tuna)",g:15,kcal:8}]},
+    {group:"Dairy & eggs",subs:[{name:"Milk",g:72,kcal:47},{name:"Eggs",g:28,kcal:40},{name:"Cheese",g:15,kcal:56}]},
+    {group:"Meat",subs:[{name:"Beef (silpancho base)",g:42,kcal:99},{name:"Llama (traditional)",g:18,kcal:38},{name:"Poultry",g:22,kcal:48}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:30,kcal:270},{name:"Animal fats",g:12,kcal:95}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:52,kcal:198},{name:"Chancaca/panela",g:18,kcal:69}]},
+    {group:"Roots & tubers",subs:[{name:"Potato (papa nativa)",g:125,kcal:128},{name:"Chuno (freeze-dried potato)",g:45,kcal:162},{name:"Cassava",g:25,kcal:27}]},
+    {group:"Pulses & nuts",subs:[{name:"Beans (habas)",g:35,kcal:113},{name:"Other pulses",g:12,kcal:39}]},
+  ]},
+  {name:"Ecuador",region:"S. America",lat:-2,lon:-78,kcal:2380,protein:72,fat:72,carbs:385,
+   data:[
+    {group:"Beverages",subs:[{name:"Coffee (Galapagos highland)",g:78,kcal:18},{name:"Soft drinks",g:88,kcal:21},{name:"Chicha/juices",g:55,kcal:22}]},
+    {group:"Cereals",subs:[{name:"Rice",g:185,kcal:629},{name:"Wheat/pan de yuca",g:88,kcal:286},{name:"Maize/mote",g:55,kcal:179},{name:"Other cereals",g:12,kcal:39}]},
+    {group:"Fruit & veg",subs:[{name:"Plantain (patacones/bolon)",g:82,kcal:90},{name:"Tomatoes",g:52,kcal:10},{name:"Banana (oritos)",g:42,kcal:37},{name:"Naranjilla/uvilla",g:28,kcal:13},{name:"Peppers/cilantro",g:18,kcal:4}]},
+    {group:"Dairy & eggs",subs:[{name:"Milk",g:88,kcal:57},{name:"Eggs",g:38,kcal:54},{name:"Queso fresco",g:22,kcal:82}]},
+    {group:"Meat",subs:[{name:"Pork (hornado)",g:45,kcal:102},{name:"Beef/cuy",g:28,kcal:66},{name:"Poultry",g:22,kcal:48}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:30,kcal:270},{name:"Achiote/lard",g:12,kcal:95}]},
+    {group:"Sugar",subs:[{name:"Sugar/panela",g:68,kcal:259},{name:"Chocolate (cacao native)",g:18,kcal:99}]},
+    {group:"Roots & tubers",subs:[{name:"Yuca/cassava",g:68,kcal:73},{name:"Potato",g:42,kcal:43},{name:"Yautia/malanga",g:18,kcal:23}]},
+    {group:"Fish",subs:[{name:"Ceviche fish (corvina)",g:28,kcal:55},{name:"Shrimp (camarones)",g:18,kcal:35}]},
+  ]},
+  {name:"Venezuela",region:"S. America",lat:8,lon:-66,kcal:2180,protein:68,fat:72,carbs:358,
+   data:[
+    {group:"Beverages",subs:[{name:"Papelon con limon",g:88,kcal:35},{name:"Soft drinks",g:98,kcal:23},{name:"Coffee (guayoyo)",g:52,kcal:12}]},
+    {group:"Cereals",subs:[{name:"Maize (arepa — national symbol)",g:248,kcal:805},{name:"Wheat/pasta",g:88,kcal:286},{name:"Rice",g:62,kcal:211}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:48,kcal:10},{name:"Plantain (tajadas)",g:42,kcal:46},{name:"Mango/papaya",g:35,kcal:21},{name:"Onions/garlic",g:22,kcal:9},{name:"Peppers (aji dulce)",g:18,kcal:4}]},
+    {group:"Dairy & eggs",subs:[{name:"White cheese (queso blanco)",g:45,kcal:168},{name:"Milk",g:78,kcal:51},{name:"Eggs",g:32,kcal:46}]},
+    {group:"Meat",subs:[{name:"Beef (pabellon criollo base)",g:45,kcal:106},{name:"Poultry",g:35,kcal:77},{name:"Pork",g:15,kcal:34}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:32,kcal:288},{name:"Animal fats",g:12,kcal:95}]},
+    {group:"Sugar",subs:[{name:"Papelon (raw cane sugar)",g:55,kcal:210},{name:"Sugar",g:38,kcal:145}]},
+    {group:"Roots & tubers",subs:[{name:"Yuca (casabe base)",g:65,kcal:70},{name:"Potato",g:28,kcal:29},{name:"Ocumo",g:15,kcal:16}]},
+    {group:"Pulses & nuts",subs:[{name:"Black beans (caraotas)",g:45,kcal:146},{name:"Other beans",g:15,kcal:49}]},
+  ]},
+  {name:"Haiti",region:"N. America",lat:19,lon:-72,kcal:1880,protein:52,fat:45,carbs:352,
+   data:[
+    {group:"Beverages",subs:[{name:"Klerin (raw cane spirit)",g:38,kcal:83},{name:"Soft drinks",g:28,kcal:7},{name:"Fruit juices",g:18,kcal:7}]},
+    {group:"Cereals",subs:[{name:"Rice",g:248,kcal:843},{name:"Maize/corn",g:95,kcal:308},{name:"Wheat/pain patate",g:32,kcal:104}]},
+    {group:"Fruit & veg",subs:[{name:"Banana/plantain (bannann)",g:78,kcal:86},{name:"Tomatoes",g:35,kcal:7},{name:"Mango (national fruit)",g:32,kcal:19},{name:"Peppers (piment)",g:22,kcal:6},{name:"Breadfruit (lam veritab)",g:15,kcal:16}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:18,kcal:26},{name:"Milk",g:15,kcal:10}]},
+    {group:"Meat",subs:[{name:"Pork (griot — fried pork)",g:25,kcal:56},{name:"Poultry",g:15,kcal:33},{name:"Goat",g:8,kcal:19}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:22,kcal:198},{name:"Palm oil",g:8,kcal:72}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:38,kcal:145},{name:"Cane syrup",g:12,kcal:38}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava/manioc",g:95,kcal:103},{name:"Sweet potato (patate)",g:45,kcal:49},{name:"Yam",g:28,kcal:30}]},
+    {group:"Pulses & nuts",subs:[{name:"Black beans (sos pwa)",g:38,kcal:123},{name:"Red kidney beans",g:18,kcal:58}]},
+  ]},
+  {name:"Guatemala",region:"N. America",lat:15,lon:-90,kcal:2580,protein:72,fat:75,carbs:420,
+   data:[
+    {group:"Beverages",subs:[{name:"Coffee (Antigua highland)",g:98,kcal:22},{name:"Horchata/atol",g:68,kcal:27},{name:"Soft drinks",g:52,kcal:12}]},
+    {group:"Cereals",subs:[{name:"Maize (tortilla — sacred grain)",g:285,kcal:925},{name:"Rice",g:62,kcal:211},{name:"Wheat/pan",g:35,kcal:114}]},
+    {group:"Fruit & veg",subs:[{name:"Chiles (guajillo/pasilla)",g:45,kcal:12},{name:"Tomatoes/tomatillos",g:42,kcal:8},{name:"Avocado/pepian seed",g:35,kcal:56},{name:"Banana/plantain",g:28,kcal:25},{name:"Jocotes/zapotes",g:18,kcal:10}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:38,kcal:54},{name:"Milk",g:55,kcal:36},{name:"Queso fresco",g:15,kcal:56}]},
+    {group:"Meat",subs:[{name:"Beef/pork (pepian base)",g:42,kcal:99},{name:"Poultry",g:28,kcal:62},{name:"Other",g:8,kcal:18}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:28,kcal:252},{name:"Lard",g:12,kcal:108}]},
+    {group:"Sugar",subs:[{name:"Sugar/miel de cana",g:62,kcal:236},{name:"Honey",g:15,kcal:46}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:38,kcal:39},{name:"Sweet potato",g:18,kcal:19}]},
+    {group:"Pulses & nuts",subs:[{name:"Black beans (frijoles negros)",g:52,kcal:168},{name:"Pepitoria (squash seeds)",g:15,kcal:83}]},
+  ]},
+  {name:"Dominican Republic",region:"N. America",lat:19,lon:-71,kcal:2780,protein:80,fat:88,carbs:432,
+   data:[
+    {group:"Beverages",subs:[{name:"Mamajuana (rum/honey)",g:42,kcal:92},{name:"Juices/batidas",g:78,kcal:31},{name:"Soft drinks",g:88,kcal:21},{name:"Coffee",g:38,kcal:9}]},
+    {group:"Cereals",subs:[{name:"Rice (la bandera base)",g:268,kcal:911},{name:"Wheat/bread",g:62,kcal:201},{name:"Maize/arepas",g:28,kcal:91}]},
+    {group:"Fruit & veg",subs:[{name:"Plantain (mangu — national dish base)",g:88,kcal:97},{name:"Tomatoes",g:45,kcal:9},{name:"Onions/peppers",g:32,kcal:13},{name:"Mango/avocado",g:28,kcal:26}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:42,kcal:60},{name:"Milk",g:72,kcal:47},{name:"Cheese (queso de hoja)",g:22,kcal:82}]},
+    {group:"Meat",subs:[{name:"Pork (chicharron)",g:42,kcal:95},{name:"Poultry (pollo guisado)",g:38,kcal:83},{name:"Beef",g:22,kcal:52}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:35,kcal:315},{name:"Lard",g:12,kcal:108}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:68,kcal:259},{name:"Dulce de coco/sweets",g:20,kcal:76}]},
+    {group:"Roots & tubers",subs:[{name:"Yuca (casabe)",g:68,kcal:73},{name:"Sweet potato/name",g:35,kcal:38}]},
+    {group:"Pulses & nuts",subs:[{name:"Red beans (habichuelas)",g:42,kcal:136},{name:"Other pulses",g:12,kcal:39}]},
+  ]},
+  {name:"Paraguay",region:"S. America",lat:-23,lon:-58,kcal:2880,protein:88,fat:105,carbs:390,
+   data:[
+    {group:"Beverages",subs:[{name:"Terere (cold yerba mate)",g:285,kcal:28},{name:"Soft drinks",g:78,kcal:18},{name:"Beer",g:45,kcal:13}]},
+    {group:"Cereals",subs:[{name:"Maize (sopa paraguaya base)",g:228,kcal:740},{name:"Wheat/bread/chipa",g:98,kcal:318},{name:"Rice",g:38,kcal:129}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:42,kcal:8},{name:"Onions/garlic",g:32,kcal:13},{name:"Mango/guava",g:28,kcal:17},{name:"Bitter orange",g:18,kcal:9}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:38,kcal:54},{name:"Milk",g:88,kcal:57},{name:"Cheese",g:32,kcal:119}]},
+    {group:"Meat",subs:[{name:"Beef (asado — dominant staple)",g:168,kcal:396},{name:"Pork",g:28,kcal:63},{name:"Poultry",g:22,kcal:48}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:45,kcal:405},{name:"Animal fats",g:15,kcal:118}]},
+    {group:"Sugar",subs:[{name:"Sugar/miel de cana",g:72,kcal:274},{name:"Honey",g:18,kcal:55}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava/mandioca (every meal)",g:115,kcal:124},{name:"Sweet potato",g:22,kcal:24}]},
+    {group:"Pulses & nuts",subs:[{name:"Beans",g:28,kcal:91},{name:"Groundnuts",g:10,kcal:58}]},
+  ]},
+  {name:"Senegal",region:"Africa",lat:14,lon:-14,kcal:2530,protein:68,fat:72,carbs:408,
+   data:[
+    {group:"Beverages",subs:[{name:"Cafe Touba (spiced coffee)",g:88,kcal:22},{name:"Bissap (hibiscus)",g:58,kcal:14},{name:"Soft drinks",g:38,kcal:9}]},
+    {group:"Cereals",subs:[{name:"Rice (thieboudienne base)",g:312,kcal:1061},{name:"Millet (thiakry base)",g:88,kcal:286},{name:"Sorghum",g:38,kcal:123},{name:"Wheat/bread",g:28,kcal:91}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes (thieboudienne)",g:55,kcal:11},{name:"Onions/garlic",g:45,kcal:18},{name:"Eggplant/bitter tomato",g:32,kcal:8},{name:"Mango/papaya",g:25,kcal:15},{name:"Baobab fruit",g:12,kcal:9}]},
+    {group:"Dairy & eggs",subs:[{name:"Milk/lait caille",g:55,kcal:36},{name:"Eggs",g:18,kcal:26}]},
+    {group:"Meat",subs:[{name:"Lamb/beef (thiebou yapp)",g:35,kcal:82},{name:"Poultry (poulet yassa)",g:28,kcal:62}]},
+    {group:"Fats & oils",subs:[{name:"Peanut oil",g:38,kcal:342},{name:"Palm oil",g:15,kcal:135}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:38,kcal:145},{name:"Honey/ngalakh",g:12,kcal:37}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava",g:72,kcal:78},{name:"Sweet potato",g:32,kcal:34},{name:"Yam",g:22,kcal:24}]},
+    {group:"Fish",subs:[{name:"Grouper/thiof (national fish)",g:42,kcal:82},{name:"Dried fish (guedj)",g:18,kcal:35},{name:"Shellfish",g:8,kcal:16}]},
+    {group:"Pulses & nuts",subs:[{name:"Groundnuts (mafe base)",g:38,kcal:220},{name:"Black-eyed peas",g:15,kcal:49}]},
+  ]},
+  {name:"Sudan",region:"Africa",lat:15,lon:30,kcal:2290,protein:68,fat:65,carbs:378,
+   data:[
+    {group:"Beverages",subs:[{name:"Karkadeh (hibiscus tea)",g:88,kcal:18},{name:"Jabana (spiced coffee)",g:55,kcal:11},{name:"Soft drinks",g:22,kcal:5}]},
+    {group:"Cereals",subs:[{name:"Sorghum (asida base)",g:285,kcal:925},{name:"Millet",g:88,kcal:286},{name:"Wheat/kisra bread",g:72,kcal:234}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:48,kcal:10},{name:"Onions/garlic",g:38,kcal:15},{name:"Okra (waika base)",g:28,kcal:8},{name:"Mangoes",g:22,kcal:13},{name:"Dates",g:18,kcal:50}]},
+    {group:"Dairy & eggs",subs:[{name:"Milk (laban)",g:55,kcal:36},{name:"Fermented milk",g:22,kcal:14},{name:"Eggs",g:12,kcal:17}]},
+    {group:"Meat",subs:[{name:"Lamb/goat",g:35,kcal:82},{name:"Beef",g:22,kcal:52},{name:"Camel (occasional)",g:8,kcal:19}]},
+    {group:"Fats & oils",subs:[{name:"Sesame oil (simsim)",g:28,kcal:252},{name:"Veg oils",g:18,kcal:162}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:38,kcal:145},{name:"Dates/honey",g:22,kcal:67}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava",g:42,kcal:45},{name:"Sweet potato",g:22,kcal:24}]},
+    {group:"Pulses & nuts",subs:[{name:"Fava beans",g:28,kcal:91},{name:"Lentils",g:18,kcal:58},{name:"Groundnuts",g:15,kcal:87}]},
+  ]},
+  {name:"Zimbabwe",region:"Africa",lat:-20,lon:30,kcal:2210,protein:60,fat:52,carbs:398,
+   data:[
+    {group:"Beverages",subs:[{name:"Chibuku (sorghum beer)",g:88,kcal:27},{name:"Tea",g:55,kcal:11},{name:"Soft drinks",g:28,kcal:7}]},
+    {group:"Cereals",subs:[{name:"Maize/sadza (national staple)",g:418,kcal:1357},{name:"Sorghum/millet",g:55,kcal:179},{name:"Wheat/bread",g:35,kcal:114}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:38,kcal:8},{name:"Covo/rape greens",g:32,kcal:8},{name:"Pumpkin/butternut",g:28,kcal:12},{name:"Mangoes",g:22,kcal:13},{name:"Onions",g:15,kcal:6}]},
+    {group:"Dairy & eggs",subs:[{name:"Milk",g:45,kcal:29},{name:"Eggs",g:22,kcal:31},{name:"Mahewu (fermented milk)",g:18,kcal:11}]},
+    {group:"Meat",subs:[{name:"Beef (nyama)",g:35,kcal:82},{name:"Goat",g:18,kcal:42},{name:"Poultry",g:12,kcal:26},{name:"Mopane worms",g:8,kcal:25}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:28,kcal:252},{name:"Animal fats",g:8,kcal:63}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:38,kcal:145},{name:"Honey",g:8,kcal:24}]},
+    {group:"Roots & tubers",subs:[{name:"Sweet potato",g:38,kcal:41},{name:"Cassava",g:22,kcal:24},{name:"Potato",g:15,kcal:15}]},
+    {group:"Pulses & nuts",subs:[{name:"Groundnuts",g:28,kcal:162},{name:"Cowpeas (nyemba)",g:22,kcal:71},{name:"Bambara nuts",g:8,kcal:26}]},
+  ]},
+  {name:"Mozambique",region:"Africa",lat:-18,lon:35,kcal:2170,protein:58,fat:52,carbs:378,
+   data:[
+    {group:"Beverages",subs:[{name:"Rooibos/tea",g:35,kcal:7},{name:"Soft drinks",g:22,kcal:5},{name:"Cashew spirit",g:15,kcal:33}]},
+    {group:"Cereals",subs:[{name:"Maize/xima porridge",g:352,kcal:1142},{name:"Sorghum/mapira",g:72,kcal:234},{name:"Rice",g:42,kcal:143}]},
+    {group:"Fruit & veg",subs:[{name:"Cassava leaves (matapa base)",g:52,kcal:13},{name:"Tomatoes/onions",g:38,kcal:8},{name:"Mango/papaya",g:28,kcal:17},{name:"Coconut",g:18,kcal:62},{name:"Banana",g:12,kcal:11}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:12,kcal:17},{name:"Milk",g:15,kcal:10}]},
+    {group:"Meat",subs:[{name:"Chicken (frango grelhado)",g:22,kcal:48},{name:"Goat",g:12,kcal:28},{name:"Other",g:5,kcal:11}]},
+    {group:"Fats & oils",subs:[{name:"Coconut oil",g:22,kcal:198},{name:"Veg oils",g:12,kcal:108}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:28,kcal:107},{name:"Honey",g:8,kcal:24}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava (ufa base)",g:178,kcal:192},{name:"Sweet potato",g:38,kcal:41},{name:"Potato",g:18,kcal:18}]},
+    {group:"Fish",subs:[{name:"Piri piri prawns/camarao",g:35,kcal:68},{name:"Marine fish",g:22,kcal:43},{name:"Sardines",g:12,kcal:23}]},
+    {group:"Pulses & nuts",subs:[{name:"Cashews (iconic export crop)",g:22,kcal:127},{name:"Beans",g:15,kcal:49}]},
+  ]},
+  {name:"Madagascar",region:"Africa",lat:-20,lon:47,kcal:2190,protein:55,fat:48,carbs:388,
+   data:[
+    {group:"Beverages",subs:[{name:"Ranovola (burnt rice water)",g:145,kcal:20},{name:"Ravintsara tea",g:45,kcal:9},{name:"Soft drinks",g:18,kcal:4}]},
+    {group:"Cereals",subs:[{name:"Rice (highest consumption globally)",g:488,kcal:1659},{name:"Wheat/maize",g:28,kcal:91},{name:"Other cereals",g:12,kcal:39}]},
+    {group:"Fruit & veg",subs:[{name:"Cassava leaves (ravitoto)",g:55,kcal:14},{name:"Tomatoes/onions",g:38,kcal:8},{name:"Banana/litchi",g:28,kcal:25},{name:"Coconut",g:18,kcal:62}]},
+    {group:"Dairy & eggs",subs:[{name:"Zebu milk",g:38,kcal:25},{name:"Eggs",g:12,kcal:17}]},
+    {group:"Meat",subs:[{name:"Zebu beef (romazava base)",g:28,kcal:66},{name:"Poultry",g:12,kcal:26},{name:"Other",g:5,kcal:11}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:22,kcal:198},{name:"Coconut oil",g:10,kcal:90}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:28,kcal:107},{name:"Vanilla/honey",g:10,kcal:31}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava/manioc",g:85,kcal:92},{name:"Sweet potato",g:32,kcal:35},{name:"Taro",g:15,kcal:16}]},
+    {group:"Fish",subs:[{name:"Marine fish",g:28,kcal:55},{name:"Freshwater fish",g:15,kcal:29}]},
+    {group:"Pulses & nuts",subs:[{name:"Cowpeas/beans",g:22,kcal:71},{name:"Groundnuts",g:12,kcal:69}]},
+  ]},
+  {name:"Mongolia",region:"Asia",lat:46,lon:105,kcal:2230,protein:88,fat:88,carbs:290,
+   data:[
+    {group:"Beverages",subs:[{name:"Suutei tsai (salted milk tea)",g:248,kcal:54},{name:"Airag (fermented mare milk)",g:88,kcal:27},{name:"Soft drinks",g:22,kcal:5}]},
+    {group:"Cereals",subs:[{name:"Wheat/tsuivan noodles",g:225,kcal:731},{name:"Barley/other",g:32,kcal:104},{name:"Rice",g:22,kcal:75}]},
+    {group:"Fruit & veg",subs:[{name:"Onions/garlic",g:38,kcal:15},{name:"Carrots",g:28,kcal:12},{name:"Cabbage (tsuivan filling)",g:22,kcal:5},{name:"Wild berries",g:15,kcal:6}]},
+    {group:"Dairy & eggs",subs:[{name:"Airag/fermented milk",g:145,kcal:44},{name:"Aaruul (dried curd)",g:52,kcal:173},{name:"Milk/byaslag cheese",g:88,kcal:57},{name:"Butter/eezgii",g:22,kcal:163}]},
+    {group:"Meat",subs:[{name:"Mutton (khorkhog base)",g:125,kcal:295},{name:"Beef",g:42,kcal:99},{name:"Horse meat",g:28,kcal:66},{name:"Camel (occasional)",g:8,kcal:19}]},
+    {group:"Fats & oils",subs:[{name:"Animal fat",g:35,kcal:315},{name:"Veg oils",g:12,kcal:108}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:38,kcal:145},{name:"Honey",g:10,kcal:31}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:65,kcal:66},{name:"Other tubers",g:12,kcal:12}]},
+  ]},
+  {name:"Georgia",region:"Europe",lat:42,lon:44,kcal:3040,protein:98,fat:115,carbs:420,
+   data:[
+    {group:"Beverages",subs:[{name:"Wine (qvevri amber wine)",g:98,kcal:29},{name:"Tea",g:88,kcal:18},{name:"Chacha (grape spirit)",g:28,kcal:61},{name:"Soft drinks",g:38,kcal:9}]},
+    {group:"Cereals",subs:[{name:"Wheat/shoti bread",g:268,kcal:870},{name:"Maize (mchadi bread)",g:58,kcal:188},{name:"Other cereals",g:18,kcal:58}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:62,kcal:12},{name:"Walnuts (in sauces)",g:38,kcal:251},{name:"Tarragon/herbs (bazhe)",g:28,kcal:7},{name:"Pomegranate",g:25,kcal:14},{name:"Fenugreek/coriander",g:18,kcal:5}]},
+    {group:"Dairy & eggs",subs:[{name:"Suluguni cheese",g:55,kcal:170},{name:"Matsoni (yoghurt)",g:45,kcal:32},{name:"Milk",g:78,kcal:51},{name:"Eggs",g:28,kcal:40}]},
+    {group:"Meat",subs:[{name:"Pork/beef (mtsvadi shashlik)",g:62,kcal:146},{name:"Poultry (satsivi base)",g:35,kcal:77},{name:"Lamb",g:18,kcal:42}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:38,kcal:342},{name:"Walnut oil",g:12,kcal:108}]},
+    {group:"Sugar",subs:[{name:"Honey",g:22,kcal:67},{name:"Sugar/churchkhela candy",g:52,kcal:198}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:82,kcal:84},{name:"Other",g:15,kcal:15}]},
+    {group:"Fish",subs:[{name:"Trout",g:15,kcal:29},{name:"Other fish",g:8,kcal:16}]},
+  ]},
+  {name:"Armenia",region:"Asia",lat:40,lon:45,kcal:2940,protein:95,fat:110,carbs:398,
+   data:[
+    {group:"Beverages",subs:[{name:"Coffee (Armenian)",g:78,kcal:18},{name:"Wine/Ararat brandy",g:65,kcal:19},{name:"Tea",g:55,kcal:11},{name:"Soft drinks",g:28,kcal:7}]},
+    {group:"Cereals",subs:[{name:"Wheat/lavash flatbread",g:295,kcal:958},{name:"Bulgur (harissa base)",g:52,kcal:169},{name:"Rice",g:35,kcal:119}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:65,kcal:13},{name:"Apricots (dried/fresh)",g:52,kcal:25},{name:"Pomegranate",g:38,kcal:21},{name:"Eggplant",g:28,kcal:7},{name:"Fresh herbs (tarragon/basil)",g:18,kcal:4}]},
+    {group:"Dairy & eggs",subs:[{name:"Matzoon (fermented milk)",g:78,kcal:56},{name:"String cheese (chechil)",g:42,kcal:128},{name:"Eggs",g:30,kcal:43},{name:"Milk",g:55,kcal:36}]},
+    {group:"Meat",subs:[{name:"Lamb (khorovats shashlik)",g:52,kcal:122},{name:"Pork",g:28,kcal:63},{name:"Poultry",g:18,kcal:40}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:38,kcal:342},{name:"Animal fats",g:12,kcal:95}]},
+    {group:"Sugar",subs:[{name:"Honey",g:25,kcal:76},{name:"Sugar/gata pastry",g:52,kcal:198}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:88,kcal:90},{name:"Other",g:12,kcal:12}]},
+    {group:"Pulses & nuts",subs:[{name:"Lentils",g:18,kcal:58},{name:"Walnuts",g:12,kcal:79}]},
+  ]},
+  {name:"Azerbaijan",region:"Asia",lat:40,lon:48,kcal:3060,protein:95,fat:108,carbs:432,
+   data:[
+    {group:"Beverages",subs:[{name:"Tea (armud pear-glass)",g:198,kcal:40},{name:"Soft drinks",g:42,kcal:10},{name:"Wine/vodka",g:32,kcal:70}]},
+    {group:"Cereals",subs:[{name:"Wheat/bread",g:285,kcal:925},{name:"Rice (plov base)",g:82,kcal:279},{name:"Other cereals",g:18,kcal:58}]},
+    {group:"Fruit & veg",subs:[{name:"Pomegranate",g:52,kcal:29},{name:"Tomatoes",g:55,kcal:11},{name:"Chestnuts/walnuts",g:28,kcal:116},{name:"Fresh herbs (dill/mint)",g:22,kcal:5},{name:"Quinces/plums",g:18,kcal:11}]},
+    {group:"Dairy & eggs",subs:[{name:"Qatiq (yoghurt)",g:78,kcal:56},{name:"Milk",g:65,kcal:42},{name:"Eggs",g:28,kcal:40},{name:"Cottage cheese",g:18,kcal:22}]},
+    {group:"Meat",subs:[{name:"Lamb (dolma base)",g:55,kcal:130},{name:"Beef",g:28,kcal:66},{name:"Poultry",g:18,kcal:40}]},
+    {group:"Fats & oils",subs:[{name:"Sunflower oil",g:42,kcal:378},{name:"Butter",g:12,kcal:89}]},
+    {group:"Sugar",subs:[{name:"Sugar/pakhlava baklava",g:62,kcal:236},{name:"Honey",g:18,kcal:55}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:85,kcal:87},{name:"Other",g:15,kcal:15}]},
+    {group:"Fish",subs:[{name:"Caspian sturgeon (naza/caviar)",g:12,kcal:23},{name:"Other Caspian fish",g:10,kcal:20}]},
+  ]},
+  {name:"Cote dIvoire",region:"Africa",lat:7,lon:-6,kcal:2680,protein:62,fat:75,carbs:428,
+   data:[
+    {group:"Beverages",subs:[{name:"Gnamankoudji (ginger drink)",g:68,kcal:17},{name:"Soft drinks",g:55,kcal:13},{name:"Palm wine/bangui",g:35,kcal:11}]},
+    {group:"Cereals",subs:[{name:"Rice",g:248,kcal:843},{name:"Maize",g:88,kcal:286},{name:"Sorghum/millet",g:42,kcal:136},{name:"Wheat/bread",g:18,kcal:58}]},
+    {group:"Fruit & veg",subs:[{name:"Plantain (alloco)",g:88,kcal:97},{name:"Eggplant/aubergine",g:42,kcal:10},{name:"Tomatoes",g:38,kcal:8},{name:"Okra (gombos)",g:28,kcal:8},{name:"Mango/pineapple",g:22,kcal:13}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:18,kcal:26},{name:"Condensed milk",g:12,kcal:36}]},
+    {group:"Meat",subs:[{name:"Poultry (kedjenou)",g:28,kcal:62},{name:"Beef",g:18,kcal:42},{name:"Bushmeat",g:8,kcal:19}]},
+    {group:"Fats & oils",subs:[{name:"Palm oil",g:38,kcal:342},{name:"Coconut oil",g:15,kcal:135}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:35,kcal:133},{name:"Honey",g:8,kcal:24}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava/attieke",g:225,kcal:243},{name:"Yam (foutou base)",g:148,kcal:160},{name:"Cocoyam",g:38,kcal:41}]},
+    {group:"Fish",subs:[{name:"Tilapia/barracuda",g:28,kcal:55},{name:"Dried smoked fish",g:18,kcal:35},{name:"Shellfish",g:8,kcal:16}]},
+    {group:"Pulses & nuts",subs:[{name:"Groundnuts/coconut",g:22,kcal:127},{name:"Beans",g:10,kcal:32}]},
+  ]},
+
+  {name:"Cuba",region:"N. America",lat:22,lon:-80,kcal:3240,protein:95,fat:112,carbs:455,
+   data:[
+    {group:"Beverages",subs:[{name:"Soft drinks",g:265,kcal:62},{name:"Rum-based cocktails",g:42,kcal:92},{name:"Cuban coffee (cortadito)",g:38,kcal:9}]},
+    {group:"Cereals",subs:[{name:"Rice",g:248,kcal:843},{name:"Wheat/bread",g:88,kcal:286},{name:"Maize/corn",g:32,kcal:104}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:48,kcal:10},{name:"Plantain (tostones/maduros)",g:42,kcal:46},{name:"Citrus/orange",g:35,kcal:17},{name:"Onions/garlic (sofrito)",g:22,kcal:9},{name:"Yuca leaves",g:14,kcal:5}]},
+    {group:"Dairy & eggs",subs:[{name:"Milk",g:98,kcal:64},{name:"Eggs",g:38,kcal:54},{name:"Cheese",g:15,kcal:56}]},
+    {group:"Meat",subs:[{name:"Pork (lechon — roast pig)",g:55,kcal:124},{name:"Poultry",g:28,kcal:62},{name:"Beef",g:8,kcal:19}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:38,kcal:342},{name:"Lard",g:17,kcal:153}]},
+    {group:"Sugar",subs:[{name:"Sugar/cane (Mojito base)",g:98,kcal:373},{name:"Honey/dulce de leche",g:37,kcal:141}]},
+    {group:"Roots & tubers",subs:[{name:"Yuca (fufu base)",g:85,kcal:92},{name:"Malanga/boniato",g:40,kcal:52}]},
+    {group:"Pulses & nuts",subs:[{name:"Black beans (moros y cristianos)",g:38,kcal:123},{name:"Red beans",g:10,kcal:32}]},
+  ]},
+  {name:"Honduras",region:"N. America",lat:15,lon:-87,kcal:2520,protein:72,fat:72,carbs:408,
+   data:[
+    {group:"Beverages",subs:[{name:"Coffee (Honduran highland)",g:88,kcal:20},{name:"Agua de Jamaica",g:55,kcal:14},{name:"Soft drinks",g:52,kcal:12}]},
+    {group:"Cereals",subs:[{name:"Maize (baleada tortilla)",g:262,kcal:851},{name:"Rice",g:78,kcal:265},{name:"Wheat/flour tortilla",g:35,kcal:114}]},
+    {group:"Fruit & veg",subs:[{name:"Plantain/banana",g:65,kcal:72},{name:"Tomatoes",g:42,kcal:8},{name:"Chiles/peppers",g:28,kcal:7},{name:"Avocado",g:22,kcal:35},{name:"Coconut",g:12,kcal:42}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:42,kcal:60},{name:"Sour cream (crema)",g:28,kcal:51},{name:"Queso seco (dry cheese)",g:18,kcal:67}]},
+    {group:"Meat",subs:[{name:"Beef",g:35,kcal:82},{name:"Poultry",g:28,kcal:62},{name:"Pork",g:15,kcal:34}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:28,kcal:252},{name:"Lard",g:10,kcal:90}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:55,kcal:210},{name:"Panela",g:18,kcal:69}]},
+    {group:"Roots & tubers",subs:[{name:"Yuca/cassava",g:52,kcal:56},{name:"Sweet potato",g:18,kcal:19}]},
+    {group:"Pulses & nuts",subs:[{name:"Red beans (frijoles rojos)",g:52,kcal:168},{name:"Other pulses",g:12,kcal:39}]},
+  ]},
+  {name:"Angola",region:"Africa",lat:-12,lon:18,kcal:2240,protein:60,fat:62,carbs:378,
+   data:[
+    {group:"Beverages",subs:[{name:"Muamba/palm wine",g:68,kcal:21},{name:"Soft drinks",g:38,kcal:9},{name:"Coffee (Angolan)",g:28,kcal:3}]},
+    {group:"Cereals",subs:[{name:"Maize/funge porridge",g:285,kcal:925},{name:"Wheat/bread",g:55,kcal:179},{name:"Sorghum/millet",g:38,kcal:123}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:38,kcal:8},{name:"Onions/garlic",g:28,kcal:11},{name:"Banana/plantain",g:25,kcal:22},{name:"Mango",g:18,kcal:11},{name:"Baobab leaves",g:12,kcal:4}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:18,kcal:26},{name:"Milk",g:22,kcal:14}]},
+    {group:"Meat",subs:[{name:"Chicken (muamba de galinha)",g:35,kcal:82},{name:"Goat",g:12,kcal:28},{name:"Other",g:5,kcal:11}]},
+    {group:"Fats & oils",subs:[{name:"Palm oil (dende)",g:38,kcal:342},{name:"Veg oils",g:12,kcal:108}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:28,kcal:107},{name:"Honey",g:8,kcal:24}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava (funje base)",g:198,kcal:214},{name:"Sweet potato",g:38,kcal:41},{name:"Yam",g:22,kcal:24}]},
+    {group:"Fish",subs:[{name:"Marine fish",g:28,kcal:55},{name:"Dried fish",g:12,kcal:23}]},
+    {group:"Pulses & nuts",subs:[{name:"Beans",g:28,kcal:91},{name:"Groundnuts",g:15,kcal:87}]},
+  ]},
+  {name:"Cameroon",region:"Africa",lat:6,lon:12,kcal:2530,protein:62,fat:58,carbs:428,
+   data:[
+    {group:"Beverages",subs:[{name:"Millet beer (bil bil)",g:68,kcal:21},{name:"Soft drinks",g:55,kcal:13},{name:"Tea/coffee",g:28,kcal:7}]},
+    {group:"Cereals",subs:[{name:"Maize",g:148,kcal:481},{name:"Sorghum/millet",g:88,kcal:286},{name:"Wheat/bread",g:42,kcal:136}]},
+    {group:"Fruit & veg",subs:[{name:"Plantain",g:68,kcal:75},{name:"African garden egg",g:55,kcal:12},{name:"Tomatoes",g:42,kcal:8},{name:"Cocoyam leaves (eru)",g:32,kcal:8},{name:"Mango/papaya",g:22,kcal:13}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:15,kcal:22},{name:"Milk",g:8,kcal:5}]},
+    {group:"Meat",subs:[{name:"Poultry (poulet DG)",g:28,kcal:62},{name:"Beef/goat",g:18,kcal:42},{name:"Bushmeat",g:8,kcal:19}]},
+    {group:"Fats & oils",subs:[{name:"Palm oil",g:38,kcal:342},{name:"Groundnut oil",g:10,kcal:90}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:28,kcal:107},{name:"Honey",g:7,kcal:21}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava/miondo",g:248,kcal:268},{name:"Cocoyam (ekwang base)",g:88,kcal:95},{name:"Yam",g:62,kcal:67}]},
+    {group:"Fish",subs:[{name:"Freshwater fish (sanga)",g:22,kcal:43},{name:"Smoked fish",g:16,kcal:31}]},
+    {group:"Pulses & nuts",subs:[{name:"Groundnuts",g:28,kcal:162},{name:"Bitter leaf/njama njama",g:12,kcal:5}]},
+  ]},
+  {name:"Zambia",region:"Africa",lat:-14,lon:28,kcal:2090,protein:58,fat:48,carbs:382,
+   data:[
+    {group:"Beverages",subs:[{name:"Chibwantu (maize drink)",g:78,kcal:24},{name:"Tea",g:45,kcal:9},{name:"Soft drinks",g:22,kcal:5}]},
+    {group:"Cereals",subs:[{name:"Maize/nshima (staple)",g:398,kcal:1292},{name:"Sorghum/millet",g:52,kcal:169},{name:"Wheat",g:25,kcal:81}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:35,kcal:7},{name:"Rape/cabbage (ifisashi base)",g:30,kcal:8},{name:"Pumpkin leaves",g:22,kcal:5},{name:"Mango",g:18,kcal:11},{name:"Banana",g:12,kcal:11}]},
+    {group:"Dairy & eggs",subs:[{name:"Milk",g:38,kcal:25},{name:"Eggs",g:15,kcal:22}]},
+    {group:"Meat",subs:[{name:"Beef (chikanda base)",g:28,kcal:66},{name:"Poultry",g:15,kcal:33},{name:"Kapenta dried fish",g:10,kcal:20}]},
+    {group:"Fats & oils",subs:[{name:"Veg oils",g:22,kcal:198},{name:"Animal fats",g:8,kcal:63}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:30,kcal:114},{name:"Honey",g:8,kcal:24}]},
+    {group:"Roots & tubers",subs:[{name:"Cassava",g:88,kcal:95},{name:"Sweet potato",g:32,kcal:34}]},
+    {group:"Fish",subs:[{name:"Kapenta (lake sardines)",g:28,kcal:55},{name:"Bream/tilapia",g:18,kcal:35}]},
+    {group:"Pulses & nuts",subs:[{name:"Groundnuts (ifisashi base)",g:28,kcal:162},{name:"Cowpeas/beans",g:15,kcal:49}]},
+  ]},
+  {name:"Myanmar",region:"Asia",lat:17,lon:96,kcal:2580,protein:72,fat:68,carbs:428,
+   data:[
+    {group:"Beverages",subs:[{name:"Green tea (laphet)",g:78,kcal:20},{name:"Soft drinks",g:45,kcal:11},{name:"Toddy palm",g:18,kcal:7}]},
+    {group:"Cereals",subs:[{name:"Rice",g:448,kcal:1523},{name:"Wheat/noodles",g:38,kcal:123},{name:"Other cereals",g:12,kcal:39}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:55,kcal:11},{name:"Banana/plantain",g:45,kcal:40},{name:"Mango",g:38,kcal:23},{name:"Morning glory (rau muong)",g:32,kcal:6},{name:"Eggplant (khayan)",g:28,kcal:7},{name:"Papaya",g:22,kcal:9}]},
+    {group:"Dairy & eggs",subs:[{name:"Eggs",g:28,kcal:40},{name:"Fermented tofu",g:8,kcal:14}]},
+    {group:"Meat",subs:[{name:"Pork",g:22,kcal:50},{name:"Poultry",g:12,kcal:26},{name:"Beef",g:4,kcal:9}]},
+    {group:"Fats & oils",subs:[{name:"Sesame oil",g:20,kcal:180},{name:"Peanut oil",g:15,kcal:135}]},
+    {group:"Sugar",subs:[{name:"Jaggery/palm sugar",g:32,kcal:122},{name:"Sugar",g:10,kcal:38}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:28,kcal:29},{name:"Cassava",g:18,kcal:19},{name:"Taro",g:6,kcal:6}]},
+    {group:"Fish",subs:[{name:"Freshwater fish",g:48,kcal:94},{name:"Marine fish",g:22,kcal:43},{name:"Ngapi (fermented shrimp paste)",g:8,kcal:16}]},
+    {group:"Pulses & nuts",subs:[{name:"Tofu (shan)",g:18,kcal:14},{name:"Lentils",g:22,kcal:71},{name:"Sesame seeds",g:8,kcal:46}]},
+  ]},
+  {name:"Nepal",region:"Asia",lat:28,lon:84,kcal:2420,protein:65,fat:52,carbs:462,
+   data:[
+    {group:"Beverages",subs:[{name:"Butter tea (tongba)",g:55,kcal:28},{name:"Tea (chiya)",g:88,kcal:18},{name:"Soft drinks",g:12,kcal:3}]},
+    {group:"Cereals",subs:[{name:"Rice",g:298,kcal:1013},{name:"Wheat/chapati",g:118,kcal:383},{name:"Maize/dhido",g:42,kcal:136},{name:"Millet (kodo)",g:14,kcal:45}]},
+    {group:"Fruit & veg",subs:[{name:"Tomatoes",g:48,kcal:10},{name:"Spinach/saag",g:38,kcal:9},{name:"Cauliflower/gobi",g:32,kcal:8},{name:"Bananas",g:28,kcal:25},{name:"Mangoes",g:22,kcal:13},{name:"Radish (mula achar)",g:18,kcal:3}]},
+    {group:"Dairy & eggs",subs:[{name:"Milk (dahi yoghurt)",g:78,kcal:51},{name:"Paneer",g:18,kcal:55},{name:"Eggs",g:10,kcal:14},{name:"Ghee",g:5,kcal:37}]},
+    {group:"Meat",subs:[{name:"Buffalo (choila base)",g:12,kcal:28},{name:"Poultry",g:8,kcal:18},{name:"Goat",g:5,kcal:12}]},
+    {group:"Fats & oils",subs:[{name:"Mustard oil",g:18,kcal:162},{name:"Ghee",g:10,kcal:90}]},
+    {group:"Sugar",subs:[{name:"Sugar",g:32,kcal:122},{name:"Jaggery/molasses",g:8,kcal:31}]},
+    {group:"Roots & tubers",subs:[{name:"Potato",g:68,kcal:70},{name:"Taro",g:14,kcal:15}]},
+    {group:"Pulses & nuts",subs:[{name:"Lentils (dal bhat base)",g:42,kcal:136},{name:"Black-eyed peas",g:18,kcal:58},{name:"Sesame (til)",g:8,kcal:46}]},
+  ]},
+];
+
+const ALL_NAMES = COUNTRIES.map(c=>c.name).sort();
+
+/* helper: roll up subs to get group total */
+function groupKcal(d){return d.subs.reduce((s,x)=>s+x.kcal,0)}
+function groupG(d){return d.subs.reduce((s,x)=>s+x.g,0)}
+
+/* ── DATE SEED ── */
+function todayStr(){const d=new Date();return`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`}
+function seededRng(seed){
+  let s=0;for(let i=0;i<seed.length;i++)s=(s*31+seed.charCodeAt(i))>>>0;
+  return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296};
+}
+function getDailyCountry(){
+  const rng=seededRng(todayStr());
+  return COUNTRIES[Math.floor(rng()*COUNTRIES.length)];
+}
+
+/* ── GEO ── */
+function toRad(d){return d*Math.PI/180}
+function distMi(a,b,c,d){const R=3958.8,dL=toRad(c-a),dO=toRad(d-b);const x=Math.sin(dL/2)**2+Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+function getBearing(a,b,c,d){const dO=toRad(d-b),y=Math.sin(dO)*Math.cos(toRad(c));const x=Math.cos(toRad(a))*Math.sin(toRad(c))-Math.sin(toRad(a))*Math.cos(toRad(c))*Math.cos(dO);return(Math.atan2(y,x)*180/Math.PI+360)%360}
+function compassLabel(deg){return["N","NE","E","SE","S","SW","W","NW","N"][Math.round(deg/45)]}
+function arrowSVG(deg){return`<svg class="arrow-svg" width="13" height="13" viewBox="0 0 13 13" style="transform:rotate(${Math.round(deg)}deg)"><polygon points="6.5,1 10.5,11.5 6.5,8.5 2.5,11.5" fill="currentColor"/></svg>`}
+
+/* ── STATE ── */
+let ST={answer:null,guesses:[],done:false,streak:0};
+
+function renderConsumptionLabel(){
+  const a = ST.answer;
+  const el = document.getElementById('consumption-label');
+  if (!el) return;
+  // Convert kcal to macros in grams for display
+  const totalG = a.data.reduce((s,d) => s + d.subs.reduce((ss,x) => ss + x.g, 0), 0);
+  el.innerHTML = `Average daily consumption: <span>${totalG.toLocaleString()}g</span> of food &amp; drink &nbsp;·&nbsp; <span>${a.kcal.toLocaleString()} kcal</span> per person`;
+}
+
+function init(){
+  ST.answer=getDailyCountry();ST.guesses=[];ST.done=false;
+  const inp=document.getElementById('ginput');inp.value='';inp.disabled=false;
+  document.getElementById('gbtn').disabled=false;
+  document.getElementById('ac-drop').style.display='none';
+  document.getElementById('hint').textContent='';
+  document.getElementById('result-area').innerHTML='';
+  document.getElementById('popup-container').innerHTML='';
+  document.getElementById('food-hint-box').innerHTML='';
+  const fhb=document.getElementById('food-hint-btn');
+  if(fhb){fhb.disabled=false;fhb.textContent='Hint (National Dish)';}
+  const d=new Date();
+  document.getElementById('date-pill').textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  renderStats();renderLegend();renderCombo();renderPips();renderGuesses();renderConsumptionLabel();
+}
+
+/* ── STATS ── */
+function sign(v){return v>0?'+':''}
+function dc(v,t=30){return Math.abs(v)<=t?'dz':v>0?'dp':'dn'}
+function renderStats(){
+  const a=ST.answer,u=USA;
+  const aK=a.kcal,uK=u.kcal,dK=aK-uK;
+  const aPr=Math.round(a.protein*4/aK*100),uPr=Math.round(u.protein*4/uK*100);
+  const aFt=Math.round(a.fat*9/aK*100),uFt=Math.round(u.fat*9/uK*100);
+  const aCb=Math.round(a.carbs*4/aK*100),uCb=Math.round(u.carbs*4/uK*100);
+  document.getElementById('stats-row').innerHTML=`
+    <div class="sc"><div class="sc-label">Total energy</div><div class="sc-val">${aK.toLocaleString()} kcal</div><div class="sc-sub ${dc(dK,80)}">${sign(dK)}${dK.toLocaleString()} vs USA</div></div>
+    <div class="sc"><div class="sc-label">Protein share</div><div class="sc-val">${aPr}%</div><div class="sc-sub ${dc(aPr-uPr,2)}">${sign(aPr-uPr)}${aPr-uPr}pp vs USA (${uPr}%)</div></div>
+    <div class="sc"><div class="sc-label">Fat share</div><div class="sc-val">${aFt}%</div><div class="sc-sub ${dc(aFt-uFt,2)}">${sign(aFt-uFt)}${aFt-uFt}pp vs USA (${uFt}%)</div></div>
+    <div class="sc"><div class="sc-label">Carbs share</div><div class="sc-val">${aCb}%</div><div class="sc-sub ${dc(aCb-uCb,2)}">${sign(aCb-uCb)}${aCb-uCb}pp vs USA (${uCb}%)</div></div>`;
+}
+
+/* ── LEGEND ── */
+function renderLegend(){
+  document.getElementById('legend').innerHTML=CAT_ORDER.map(g=>{
+    const c=CAT_COLORS[g]||{base:'#555'};
+    return`<span class="li" onclick="showPopup('${g}')"><span class="ld" style="background:${c.base}"></span>${g}</span>`;
+  }).join('');
+}
+
+/* ── COMBO RENDER (proportional, aligned, subcategory stripes) ── */
+const GAP=40,MAX_H=210;
+
+function buildCols(country,drawW){
+  const totalKcal=country.data.reduce((s,d)=>s+groupKcal(d),0);
+  const cols=[];let x=0;
+  CAT_ORDER.forEach(group=>{
+    const d=country.data.find(d=>d.group===group);
+    if(!d)return;
+    const gk=groupKcal(d);if(gk===0)return;
+    const w=Math.max(2,(gk/totalKcal)*drawW);
+    cols.push({group,x:Math.round(x),w:Math.round(w),totalKcal:gk,subs:d.subs});
+    x+=w;
+  });
+  return cols;
+}
+
+function renderCombo(){
+  const canvas=document.getElementById('tm-canvas');
+  const W=canvas.offsetWidth;
+  const uTotK=USA.data.reduce((s,d)=>s+groupKcal(d),0);
+  const mTotK=ST.answer.data.reduce((s,d)=>s+groupKcal(d),0);
+  const maxK=Math.max(uTotK,mTotK);
+  const MYST_H=Math.round(MAX_H*(mTotK/maxK));
+  const USA_H=Math.round(MAX_H*(uTotK/maxK));
+  const totalH=MYST_H+GAP+USA_H;
+  canvas.style.height=totalH+'px';
+  canvas.innerHTML='';
+
+  // Side labels — rendered as horizontal bars above each row
+  const labelDefs=[
+    {lbl:'Mystery',top:0,h:MYST_H,kcal:mTotK},
+    {lbl:'USA (reference)',top:MYST_H+GAP,h:USA_H,kcal:uTotK}
+  ];
+  labelDefs.forEach(({lbl,top,h,kcal})=>{
+    // Floating label bar sitting in the top-left of each row
+    const el=document.createElement('div');
+    el.style.cssText=`position:absolute;top:${top+8}px;left:32px;z-index:6;display:flex;align-items:center;gap:8px;pointer-events:none`;
+    el.innerHTML=`<span style="font-size:12px;font-family:'Syne',sans-serif;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:rgba(245,244,238,0.90);background:rgba(13,13,15,0.72);padding:3px 8px;border-radius:5px;backdrop-filter:blur(4px)">${lbl}</span><span style="font-size:13px;font-family:'Syne',sans-serif;font-weight:600;color:rgba(245,244,238,0.70);background:rgba(13,13,15,0.72);padding:3px 8px;border-radius:5px">${kcal.toLocaleString()} kcal/day</span>`;
+    canvas.appendChild(el);
+  });
+
+  // Gap — thick centred divider with vs label
+  const div=document.createElement('div');
+  div.style.cssText=`position:absolute;top:${MYST_H}px;left:0;right:0;height:${GAP}px;background:var(--bg);z-index:3;display:flex;align-items:center;justify-content:center;gap:12px;`;
+  div.innerHTML=`<div style="flex:1;height:1px;background:rgba(245,244,238,0.15)"></div><span style="font-size:10px;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:1.5px;color:rgba(245,244,238,0.30);text-transform:uppercase;flex-shrink:0">vs</span><div style="flex:1;height:1px;background:rgba(245,244,238,0.15)"></div>`;
+  canvas.appendChild(div);
+
+  const drawW=W-4,offX=2;
+
+  function renderRow(country,topY,rowH,clickable,opacity){
+    const cols=buildCols(country,drawW);
+    cols.forEach(col=>{
+      const c=CAT_COLORS[col.group]||{base:'#333'};
+      // draw sub-stripes stacked vertically within the column
+      let subY=topY;
+      const validSubs=col.subs.filter(s=>s.kcal>0);
+      validSubs.forEach((sub,si)=>{
+        const subH=Math.max(1,Math.round((sub.kcal/col.totalKcal)*rowH));
+        const fill=subColor(col.group,si);
+        const el=document.createElement('div');
+        el.className='block';
+        el.style.cssText=`left:${col.x+offX}px;top:${subY}px;width:${col.w}px;height:${subH}px;background:${fill};border:1px solid var(--bg);opacity:${opacity};`;
+        // label only if big enough
+        if(col.w>30&&subH>18){
+          const fs=Math.min(10,Math.max(8,Math.min(col.w,subH)/9));
+          el.innerHTML=`<span class="bl" style="font-size:${fs}px;color:rgba(237,237,234,0.85)">${sub.name}</span>${subH>32&&col.w>45?`<span class="bv" style="font-size:${Math.max(7,fs-1)}px;color:rgba(237,237,234,0.6)">${sub.kcal}kcal</span>`:''}`;
+        }
+        if(clickable){
+          el.addEventListener('click',()=>showPopup(col.group));
+        }
+        el.addEventListener('mousemove',e=>{
+          const tt=document.getElementById('tt');
+          tt.style.display='block';tt.style.left=(e.clientX+12)+'px';tt.style.top=(e.clientY-8)+'px';
+          tt.textContent=`${col.group} › ${sub.name}: ${sub.g}g · ${sub.kcal}kcal${clickable?' · click for full comparison':''}`;
+        });
+        el.addEventListener('mouseleave',()=>{document.getElementById('tt').style.display='none';});
+        canvas.appendChild(el);
+        subY+=subH;
+      });
+    });
+  }
+
+  renderRow(ST.answer,0,MYST_H,true,1);
+  renderRow(USA,MYST_H+GAP,USA_H,true,0.62);
+}
+
+/* ── POPUP (group comparison with sub-table) ── */
+function showPopup(group){
+  const md=ST.answer.data.find(d=>d.group===group);
+  const ud=USA.data.find(d=>d.group===group);
+  const c=CAT_COLORS[group]||{base:'#555'};
+  const mK=md?groupKcal(md):0,mG=md?groupG(md):0;
+  const uK=ud?groupKcal(ud):0,uG=ud?groupG(ud):0;
+  const mTotK=ST.answer.kcal,uTotK=USA.kcal;
+  const mTotG=ST.answer.data.reduce((s,d)=>s+groupG(d),0);
+  const uTotG=USA.data.reduce((s,d)=>s+groupG(d),0);
+  const mSk=Math.round(mK/mTotK*100),uSk=Math.round(uK/uTotK*100);
+  const mSg=Math.round(mG/mTotG*100),uSg=Math.round(uG/uTotG*100);
+  const dK=mK-uK,dG=mG-uG;
+  const dKpct=uK?Math.round(dK/uK*100):0;
+  const dGpct=uG?Math.round(dG/uG*100):0;
+  function cc(v){return v>0?'#f87171':v<0?'#4ade80':'var(--muted)'}
+  function fmt(v){return(v>0?'+':'')+v}
+
+  // sub-table
+  const allSubs=[...(md?md.subs:[])].map(s=>({name:s.name,mG:s.g,mK:s.kcal}));
+  const uSubMap={};if(ud)ud.subs.forEach(s=>uSubMap[s.name]={g:s.g,kcal:s.kcal});
+  // also add USA-only subs
+  if(ud)ud.subs.forEach(s=>{if(!allSubs.find(x=>x.name===s.name))allSubs.push({name:s.name,mG:0,mK:0});});
+  const subRows=allSubs.filter(s=>s.mK>0||(uSubMap[s.name]?.kcal||0)>0)
+    .map((s,si)=>{
+      const uk=uSubMap[s.name]?.kcal||0,ug=uSubMap[s.name]?.g||0;
+      const dc=s.mK-uk;
+      const dotColor=subColor(group,si);
+      return`<tr><td><span class="sub-dot" style="background:${dotColor}"></span>${s.name}</td><td>${s.mG}g</td><td>${ug}g</td><td style="color:${cc(dc)}">${fmt(dc)}kcal</td></tr>`;
+    }).join('');
+
+  const mx=Math.max(mG,uG,1);
+  document.getElementById('popup-container').innerHTML=`
+    <div class="popup-overlay" onclick="closePopup(event)">
+      <div class="popup" onclick="event.stopPropagation()">
+        <button class="popup-close" onclick="closePopup()">✕</button>
+        <div class="popup-title"><span class="popup-dot" style="background:${c.base}"></span>${group}</div>
+        <div class="pr"><span class="prl">Mystery kcal/day</span><span class="prv">${mK} kcal (${mSk}% of diet)</span></div>
+        <div class="pr"><span class="prl">USA kcal/day</span><span class="prv">${uK} kcal (${uSk}% of diet)</span></div>
+        <div class="pr"><span class="prl">Kcal diff</span><span class="prv" style="color:${cc(dK)}">${fmt(dK)} kcal (${fmt(dKpct)}%)</span></div>
+        <div class="pr"><span class="prl">Weight diff</span><span class="prv" style="color:${cc(dG)}">${fmt(dG)}g (${fmt(dGpct)}%)</span></div>
+        <div class="pr"><span class="prl">Diet share diff</span><span class="prv" style="color:${cc(mSk-uSk)}">${fmt(mSk-uSk)}pp kcal · ${fmt(mSg-uSg)}pp weight</span></div>
+        <div class="pbar-wrap">
+          <div class="pbar-lbl">g/day</div>
+          <div class="pbar-row"><span class="pbar-name">Mystery</span><div class="pbar-track"><div class="pbar-fill" style="width:${Math.round(mG/mx*100)}%;background:${c.base}"></div></div><span class="pbar-val">${mG}g</span></div>
+          <div class="pbar-row"><span class="pbar-name">USA</span><div class="pbar-track"><div class="pbar-fill" style="width:${Math.round(uG/mx*100)}%;background:#2a5898"></div></div><span class="pbar-val">${uG}g</span></div>
+        </div>
+        <table class="sub-table" style="margin-top:14px">
+          <thead><tr><th>Item</th><th>Mystery</th><th>USA</th><th>Δkcal</th></tr></thead>
+          <tbody>${subRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+function closePopup(e){if(!e||e.target.classList.contains('popup-overlay'))document.getElementById('popup-container').innerHTML='';}
+
+/* ── PIPS + GUESSES ── */
+function renderPips(){
+  document.getElementById('pips').innerHTML=Array.from({length:6},(_,i)=>{
+    const g=ST.guesses[i],cls=g?(g.correct?'cp':g.close?'clp':'wp'):'';
+    return`<div class="pip ${cls}"></div>`;
+  }).join('');
+}
+function renderGuesses(){
+  document.getElementById('guesses').innerHTML=ST.guesses.map(g=>{
+    const cls=g.correct?'g-correct':g.close?'g-close':'g-wrong';
+    const icon=g.correct?'✓':g.close?'≈':'✗';
+    const proximity=g.label?`<span class="g-proximity">${g.label}</span>`:'';
+    const meta=g.correct?'':`<span class="g-meta"><span class="g-dist">${Math.round(g.dist).toLocaleString()} mi ${compassLabel(g.bear)}</span>${arrowSVG(g.bear)}</span>`;
+    return`<div class="gr ${cls}"><span class="g-icon">${icon}</span><span class="g-name">${g.name}</span>${proximity}${meta}</div>`;
+  }).join('');
+}
+
+/* ── GUESS ── */
+function submitGuess(){
+  if(ST.done)return;
+  const inp=document.getElementById('ginput');
+  const val=inp.value.trim();if(!val)return;
+  const match=ALL_NAMES.find(n=>n.toLowerCase()===val.toLowerCase());
+  if(!match){showHint('Not in list — use autocomplete');return;}
+  if(ST.guesses.find(g=>g.name===match)){showHint('Already guessed!');return;}
+  const gc=COUNTRIES.find(c=>c.name===match);
+  const correct=match===ST.answer.name;
+  const dist=correct?0:distMi(gc.lat,gc.lon,ST.answer.lat,ST.answer.lon);
+  const bear=correct?0:getBearing(gc.lat,gc.lon,ST.answer.lat,ST.answer.lon);
+  const close=!correct&&gc.region===ST.answer.region;
+  const label=correct?'':(dist<500?'🔥 So close!':(dist<1500?'Getting warmer!':(dist<4000?'Getting closer…':'Way off')));
+  ST.guesses.push({name:match,correct,close,dist,bear,label});
+  inp.value='';document.getElementById('ac-drop').style.display='none';
+  renderPips();renderGuesses();
+  if(correct){ST.done=true;ST.streak++;document.getElementById('streak-pill').textContent=`◆ ${ST.streak}`;showResult(true);}
+  else if(ST.guesses.length>=6){ST.done=true;ST.streak=0;document.getElementById('streak-pill').textContent='◆ 0';showResult(false);}
+  else{const r=6-ST.guesses.length;showHint(`${r} guess${r!==1?'es':''} left · ${Math.round(dist).toLocaleString()} mi ${compassLabel(bear)} of answer${close?' · Same region!':''}`);}
+}
+function showHint(m){document.getElementById('hint').textContent=m;}
+
+function showResult(won){
+  document.getElementById('gbtn').disabled=true;
+  document.getElementById('ginput').disabled=true;
+  document.getElementById('hint').textContent='';
+  const a=ST.answer;
+  document.getElementById('result-area').innerHTML=`
+    <div class="result-card">
+      <div class="result-title ${won?'won':'lost'}">${won?'Correct!':'Answer: '+a.name}</div>
+      <div class="result-sub">${a.name} · ${a.region} · ${a.kcal.toLocaleString()} kcal/day · ${ST.guesses.length}/6 guesses</div>
+      ${won?`<div class="result-streak">◆ Streak: ${ST.streak}</div>`:''}
+    </div>
+    <button class="next-btn" onclick="startFree()">Play free mode (random) →</button>`;
+}
+
+function startFree(){
+  const avail=COUNTRIES.filter(c=>c.name!==ST.answer.name);
+  ST.answer=avail[Math.floor(Math.random()*avail.length)];
+  ST.guesses=[];ST.done=false;
+  document.getElementById('ginput').value='';
+  document.getElementById('ginput').disabled=false;
+  document.getElementById('gbtn').disabled=false;
+  document.getElementById('hint').textContent='';
+  document.getElementById('result-area').innerHTML='';
+  document.getElementById('popup-container').innerHTML='';
+  document.getElementById('food-hint-box').innerHTML='';
+  const fhb=document.getElementById('food-hint-btn');
+  if(fhb){fhb.disabled=false;fhb.textContent='Hint (National Dish)';}
+  renderStats();renderLegend();renderCombo();renderPips();renderGuesses();renderConsumptionLabel();
+}
+
+/* ── FOOD HINT ── */
+const COUNTRY_HINTS = {
+  "Norway": `Cured for months in salt, sugar and dill, this salmon dish is sliced paper-thin and served without any cooking — the cure is the only heat it ever sees.`,
+  "Sweden": `Every Thursday, this thick yellow pea soup has been served in homes, schools and military canteens for centuries, traditionally followed by pancakes with jam.`,
+  "Finland": `A dense rye sourdough so dark it looks almost black, baked in round loaves with a hole in the middle — Finnish families keep one on the counter all week and slice it with a special bread knife.`,
+  "Germany": `Pork knuckle slow-roasted until the skin crisps into crackling and the meat falls from the bone — this Munich beer hall staple is served with sauerkraut and a litre of lager.`,
+  "France": `A rich, glossy sauce built by slowly reducing wine, shallots and bone marrow butter — the soul of a Parisian bistro and the reason French cooking has been imitated everywhere.`,
+  "Italy": `Two sheets of fresh egg pasta sealed around a pocket of ricotta and spinach, dressed only in browned butter and sage — the filling does all the talking.`,
+  "Spain": `Saffron-stained rice cooked in a wide shallow pan over open flame, absorbing stock until the bottom layer forms a crisp, caramelised crust called the socarrat.`,
+  "Poland": `Sauerkraut and wild mushrooms stuffed into soft dough parcels, boiled then pan-fried until golden — eaten at Christmas Eve supper across the entire country.`,
+  "Romania": `Spiced minced meat rolled into small cigar shapes and grilled over charcoal, served with mustard and fresh bread — the smell drifts from every roadside grill in summer.`,
+  "Greece": `Layers of minced lamb, eggplant and béchamel baked until the top is bronzed and just set — a dish so tied to Sunday lunch it barely needs a name.`,
+  "Ukraine": `A vivid magenta soup made from beets, simmered for hours with cabbage, pork and dill, finished with a large dollop of soured cream in the bowl.`,
+  "Turkey": `Minced lamb and beef kneaded with onion and parsley, pressed onto flat skewers and grilled over charcoal — eaten wrapped in lavash with raw onion and sumac.`,
+  "Portugal": `Salt cod soaked for two days then baked with olive oil, potatoes and onions — a dish so central to the culture that there are said to be 365 ways to prepare it.`,
+  "Canada": `Fresh cheese curds piled onto thick-cut fries then smothered in hot brown gravy — a Quebec invention that has spread to every late-night diner in the country.`,
+  "Mexico": `A slow-braised sauce of dried chillies, chocolate, spices and tomato that takes a full day to make, darkening in the pot until it coats a wooden spoon like velvet.`,
+  "Cuba": `Black beans cooked low and slow with garlic, cumin and bay leaf until the broth turns silky, then ladled over white rice — eaten at virtually every meal.`,
+  "Brazil": `A slow-cooked stew of black beans, pork belly, smoked sausage and offcuts, served on Saturdays with rice, farofa, orange slices and collard greens.`,
+  "Argentina": `Beef short ribs seasoned with nothing but coarse salt, cooked low and slow over glowing quebracho coals for three hours — fat rendering into the embers below.`,
+  "Colombia": `A mountainous broth of three different potatoes, chicken and corn on the cob, so thick it becomes a stew, finished with cream and capers at the table.`,
+  "Peru": `Raw white fish cured for minutes in fresh lime juice until the flesh turns opaque, then tossed with ají amarillo, red onion and coriander.`,
+  "Chile": `Half an avocado mashed with lemon and salt, piled onto a bread roll split down the middle — a morning staple eaten standing up at bakeries across the country.`,
+  "China": `Pork belly braised for hours in soy, rice wine and rock sugar until the skin turns lacquered and trembles on the chopstick — a Hangzhou dish named after a poet.`,
+  "Japan": `A bowl of wheat noodles in a broth that has been simmering for eighteen hours — the fat glistening on the surface, a soft egg barely set, pork belly that dissolves.`,
+  "South Korea": `Fermented napa cabbage packed with gochugaru, garlic, ginger and fish sauce — left to sour in clay pots for months, eaten with every meal as a condiment and a staple.`,
+  "India": `Lentils simmered until completely smooth, then hit with a final tempering of ghee, cumin seeds, dried chilli and garlic — the technique is called tadka and transforms the whole dish.`,
+  "Pakistan": `Meat slow-cooked in a karahi — a round-bottomed iron wok — with tomatoes, ginger and green chillies until the oil rises back to the surface, the sign it is ready.`,
+  "Bangladesh": `Hilsa fish marinated in mustard paste and turmeric, wrapped in banana leaf and steamed — a dish so loved that the fish has protected status during spawning season.`,
+  "Indonesia": `A paste of shallots, garlic, galangal, lemongrass and chilli fried until fragrant, then used to braise beef for hours until the coconut milk evaporates completely.`,
+  "Vietnam": `A clear beef broth simmered overnight with charred ginger and star anise, poured over rice noodles at dawn and dressed with fresh herbs at the table.`,
+  "Thailand": `Unripe papaya shredded into long strands, pounded with garlic and chilli in a mortar, then dressed with fish sauce, lime, palm sugar and dried shrimp.`,
+  "Philippines": `Pork and chicken braised in vinegar, soy sauce and garlic until the liquid reduces to a glossy coating — the acidity was originally a way to preserve meat before refrigeration.`,
+  "Saudi Arabia": `Spiced lamb and rice slow-cooked together in a sealed pot, the grains absorbing the meat juices — served on a large communal platter with rose water and nuts.`,
+  "Iran": `A thick stew of pomegranate molasses and ground walnuts, dark brown and faintly sweet-sour, spooned over chicken and eaten with saffron rice.`,
+  "Kazakhstan": `Boiled horse meat and flat noodles served on an enormous platter, eaten with the hands around a low table — the dish is literally named 'five fingers'.`,
+  "Uzbekistan": `Rice cooked in cottonseed oil with lamb, carrots and onions in a heavy cast-iron kazan — the art is in the layering and the moment you seal the lid.`,
+  "Nepal": `Steamed dumplings filled with minced buffalo meat and onion, served with a fiery tomato-sesame dipping sauce — sold from bamboo steamers at every street corner.`,
+  "Myanmar": `Rice noodles in a thick, turmeric-golden fish broth topped with crispy noodles, banana stem, boiled eggs and fish sauce — eaten at breakfast throughout the country.`,
+  "Nigeria": `Fermented locust beans fried in palm oil with stockfish and scotch bonnets, then thickened with egusi melon seeds into a stew that coats the back of a spoon.`,
+  "Ethiopia": `A sourdough flatbread made from teff, fermented for three days until faintly sour, used as both plate and utensil to scoop up lentil and meat stews.`,
+  "Egypt": `Fava beans slow-cooked overnight in a large copper pot called a damasa, then dressed with lemon juice, cumin and olive oil — eaten for breakfast every day of the year.`,
+  "Morocco": `A slow-cooked stew of lamb, preserved lemon and olives sealed under a conical clay lid — the condensation drips back down, basting the meat for hours.`,
+  "Kenya": `White maize flour stirred into boiling water until it forms a stiff, smooth paste — eaten with every meal, shaped in the hand and used to scoop up stew.`,
+  "Ghana": `Fermented corn dough cooked with cassava dough on a hot griddle, half-folded and served with okra soup, grilled tilapia and fiery shito pepper sauce.`,
+  "Tanzania": `Zanzibar-style rice cooked in coconut milk with cardamom, cloves and cinnamon — perfumed enough to smell from the street, eaten with slow-braised goat.`,
+  "South Africa": `Spiced minced lamb baked under a savoury egg custard — a Cape Malay dish that arrived with Indonesian and Malaysian slaves three centuries ago.`,
+  "Algeria": `Steamed semolina grains piled into a pyramid over a broth of lamb, chickpeas and root vegetables — each family has their own spice blend passed down through generations.`,
+  "Australia": `A yeast extract paste spread thinly on buttered toast — intensely salty, deeply savoury and completely polarising to anyone who didn't grow up eating it.`,
+  "New Zealand": `A meringue base baked until the outside is crisp and the inside stays soft and marshmallowy, piled with whipped cream and fresh kiwifruit — contested with a neighbour.`,
+  "Cameroon": `Bitter leaf slow-simmered in palm oil with crayfish and ground peanuts — a stew from the western highlands that takes hours of washing and wringing the leaves to tame their bitterness.`,
+
+  "Malaysia": `Coconut rice cooked in pandan leaf and served with fried anchovies, roasted peanuts, cucumber slices and a boiled egg — wrapped in banana leaf at roadside stalls since dawn. (Note: national dish shared with Singapore)`,
+  "Singapore": `Coconut rice served with fried anchovies, roasted peanuts and sambal chilli — the same dish eaten at hawker centres that have held Michelin stars. (Note: national dish shared with Malaysia)`,
+  "Sri Lanka": `Milk rice — rice cooked until thick with coconut milk, then set into a slab and cut into squares — eaten at every New Year celebration and auspicious occasion.`,
+  "Iraq": `A whole lamb slow-roasted over an underground fire for hours until falling apart, served on a mountain of saffron rice with almonds and raisins — a dish of ancient Mesopotamian hospitality.`,
+  "Jordan": `Lamb and rice cooked in a yoghurt broth so thick it barely moves, served on an enormous communal platter lined with flatbread — eaten with the right hand as a sign of brotherhood.`,
+  "Lebanon": `Cracked wheat and finely chopped parsley dressed with lemon juice and olive oil — eaten across the Levant, but nowhere more obsessively than here, where it is the subject of record-breaking contests.`,
+  "Israel": `Chickpeas puréed with tahini, lemon and garlic, served warm from the pot with a pool of olive oil and whole chickpeas — debated endlessly across the region but eaten devotedly here at breakfast.`,
+  "Hungary": `A paprika-red broth of beef, onions and caraway seeds, slow-cooked until the meat falls apart — the scarlet colour comes from dried sweet Hungarian peppers that were once traded as gold.`,
+  "Czech Republic": `Roast pork with bread dumplings and braised sauerkraut — three things on one plate, with the dumplings made from old bread soaked and pressed into a loaf, sliced thick to soak up the gravy.`,
+  "Austria": `A veal cutlet hammered thin, coated in breadcrumbs and shallow-fried in clarified butter until it balloons and crinkles — the crust must never touch the meat, a rule taken very seriously in Vienna.`,
+  "Belgium": `Thick-cut potato wedges fried twice — first to cook through, then again at high heat to crisp the outside — served in a paper cone with mayonnaise from a roadside frituur.`,
+  "Netherlands": `Raw herring held by the tail and lowered into the mouth whole, or chopped and served in a soft roll with diced onion and gherkins — eaten standing at harbour-side stalls.`,
+  "Switzerland": `Grated potato pressed into a flat cake and fried in butter until both sides are deeply golden and crisp — eaten for breakfast, lunch or dinner, served with fried egg or applesauce.`,
+  "Bolivia": `Freeze-dried potato — left outside overnight to freeze on the Altiplano then trampled underfoot to press out moisture, repeating for days until it becomes a chalk-white, feather-light ingredient that lasts for years.`,
+  "Ecuador": `A slow-roasted whole pig seasoned with garlic, cumin and achiote, its skin crackling like glass — sold from roadside ovens by the kilo on Sundays, the queue forming before the church lets out.`,
+  "Venezuela": `White cornmeal mixed with water and salt, shaped by hand into a thick disc and cooked on a budare griddle until a crust forms — split open and stuffed with anything from cheese to black beans to shredded beef.`,
+  "Haiti": `Fried pork shoulder marinated in bitter orange, garlic and scotch bonnet — crisp on the outside, tender within, served with pikliz: a fiery pickled cabbage that cuts through the richness.`,
+  "Guatemala": `A slow-cooked stew thickened with ground pumpkin seeds, sesame and dried chillies, its colour deepening to a dark rust as it simmers — poured over turkey at festivals descended from pre-Columbian ceremony.`,
+  "Dominican Republic": `Mashed plantain topped with sautéed onions, crumbled white cheese and a fried egg — eaten for breakfast across the country, the purple-grey mash a colour unlike almost any other morning food.`,
+  "Paraguay": `A baked cornbread enriched with cheese and onion — dense, golden and slightly sweet, sliced and eaten alongside any meal, made with a cheese local to the country that melts into the batter.`,
+  "Senegal": `Broken rice cooked with grouper, tomato, onion and vegetables in a single pot — the national dish of this country, eaten communally from a shared bowl, with the fish placed in the centre as an offering to the eldest.`,
+  "Sudan": `A thick porridge of sorghum stirred continuously over heat until it pulls away from the sides of the pot, then served with a stew of dried okra, meat and peanut sauce poured around its base.`,
+  "Zimbabwe": `Stiff white maize porridge cooked until a wooden spoon can stand upright in it — rolled into a ball with the right hand, dipped into relish or stew, and eaten at every meal of every day.`,
+  "Mozambique": `Piri piri prawns — whole prawns grilled over charcoal and basted repeatedly with a sauce of bird's eye chilli, garlic, lemon and butter, a recipe carried by Portuguese traders four centuries ago.`,
+  "Madagascar": `Zebu beef braised with watercress and other greens until the broth turns jade-green — simple on the surface but reflecting centuries of trade between the island and the African coast and Southeast Asia.`,
+  "Mongolia": `Meat and vegetables sealed inside a hot stone vessel — round river stones heated in a fire are placed inside a sealed container with mutton and root vegetables, cooking from the inside out.`,
+  "Georgia": `Cheese-filled bread baked in a clay oven until the crust puffs and browns, then a hollow carved in the top and filled with butter and a raw egg yolk — stirred at the table before tearing into strips.`,
+  "Armenia": `Wheat and lamb slow-cooked together until the grains dissolve completely into a porridge — stirred for hours with a wooden paddle, traditionally cooked in clay pots buried in ash.`,
+  "Azerbaijan": `Lamb and chestnuts wrapped in vine leaves and slow-braised in pomegranate juice — the combination of meat, sour fruit and nuts in a parcel is one of the oldest cooking traditions in the Caucasus.`,
+  "Cote dIvoire": `Fermented cassava semolina steamed until it forms light, slightly sour granules — piled beside grilled fish and topped with a sauce of onion, chilli and tomato, eaten across the country for lunch.`,
+
+  "Cuba": `Slow-roasted whole pig marinated in sour orange juice and garlic, the skin blistered to crackling — eaten at every Christmas and celebration, pulled apart at the table.`,
+  "Honduras": `A thick flour tortilla folded and filled with refried beans, sour cream and crumbled cheese — the national street food eaten at breakfast, lunch and dinner, adapted endlessly by what is available.`,
+  "Angola": `Chicken simmered in palm oil with garlic, onion, okra and the muamba nut — a sauce so deeply orange it stains the pot, a recipe tracing back centuries through West African coastal trade.`,
+  "Cameroon": `Boiled cocoyam leaves pounded with crayfish and palm oil, wrapped around fish or meat in banana leaf parcels and steamed — a dish from the grasslands that every grandmother makes differently.`,
+  "Zambia": `Stiff white maize porridge rolled between the fingers, dipped into a relish of dried kapenta lake sardines fried with tomato and onion — the same meal eaten twice a day across the country.`,
+  "Myanmar": `Rice noodles in a coconut and fish broth thickened with chickpea flour, served with crispy noodles, banana stem, boiled eggs and a squeeze of lime — eaten for breakfast throughout the country.`,
+  "Nepal": `A mound of rice beside a bowl of thin lentil soup and a small plate of vegetable curry — eaten twice a day for most of the population, the word for the meal literally means 'rice and lentils'.`,
+};
+
+function revealFoodHint(){
+  const btn=document.getElementById('food-hint-btn');
+  const box=document.getElementById('food-hint-box');
+  const hint=COUNTRY_HINTS[ST.answer.name];
+  if(!hint){box.innerHTML=`<div class="fh-loading">No hint available for this country.</div>`;return;}
+  box.innerHTML=`<div class="food-hint-card"><span class="fh-icon">🍽</span><span class="fh-text">${hint}</span></div>`;
+  btn.disabled=true;btn.textContent='hint revealed';
+}
+
+/* ── AUTOCOMPLETE ── */
+const inp=document.getElementById('ginput'),drop=document.getElementById('ac-drop');
+inp.addEventListener('input',()=>{
+  const v=inp.value.trim().toLowerCase();
+  if(!v){drop.style.display='none';return;}
+  const m=ALL_NAMES.filter(n=>n.toLowerCase().includes(v)).slice(0,8);
+  if(!m.length){drop.style.display='none';return;}
+  drop.innerHTML=m.map(n=>`<div class="ac-item" onclick="sel('${n.replace(/'/g,"\\'")}')">${n}</div>`).join('');
+  drop.style.display='block';
+});
+function sel(n){inp.value=n;drop.style.display='none';inp.focus();}
+inp.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){drop.style.display='none';submitGuess();}
+  if(e.key==='Escape')drop.style.display='none';
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.ac-wrap'))drop.style.display='none';});
+window.addEventListener('resize',()=>{if(ST.answer)renderCombo();});
+init();
+</script>
+<footer class="source-footer">
+  <p>
+    <strong style="color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.4px">Sources</strong><br>
+    Food consumption data: <a href="https://www.fao.org/faostat/en/#data/FBS" target="_blank">FAO Food Balance Sheets (FAOSTAT)</a>, United Nations Food and Agriculture Organization, 2021–2023 estimates.
+    National dietary surveys cross-referenced with <a href="https://www.who.int/data/gho/data/themes/topics/noncommunicable-diseases" target="_blank">WHO Global Health Observatory</a> and national statistics agencies.
+    All figures represent average daily food supply per capita (availability at consumer level, before waste).
+  </p>
+</footer>
+</body>
+</html>
