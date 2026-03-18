@@ -39,7 +39,7 @@ main{width:100%;max-width:860px;padding:14px 20px 60px}
 .sc-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;font-family:'Syne',sans-serif}
 .sc-val{font-size:14px;font-weight:600;color:var(--text);font-family:'Syne',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sc-sub{font-size:10px;margin-top:2px}
-.dp{color:#f87171}.dn{color:#4ade80}.dz{color:var(--muted)}
+.dp{color:var(--muted)}.dn{color:var(--muted)}.dz{color:var(--muted)}
 .legend{display:flex;flex-wrap:wrap;gap:5px 13px;margin-bottom:10px}
 .li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);cursor:pointer;transition:color .12s}
 .li:hover{color:var(--text)}
@@ -136,13 +136,13 @@ main{width:100%;max-width:860px;padding:14px 20px 60px}
 </header>
 <main>
   <div class="game-header">
-    <p class="how-to">Area = kcal. Mystery country on top, USA below. Columns = food groups (fixed order). Stripes within each column = subcategories. Click any block for a detailed breakdown.</p>
-    <div class="consumption-label" id="consumption-label"></div>
+    <div style="font-size:16px;font-weight:600;color:var(--text);font-family:'Syne',sans-serif;margin-bottom:6px">Guess the mystery country based on average diet! <span style="color:var(--faint);font-weight:400;font-size:14px">(USA below for reference)</span></div>
+    <p class="how-to">Area = calories. Columns = food groups. Stripes within each column = subcategories. Click any block for a detailed breakdown.</p>
   </div>
   <div class="stats-row" id="stats-row"></div>
   <div class="legend" id="legend"></div>
   <div class="tm-toolbar">
-    <div class="tm-meta">Area = kcal · click any block to compare</div>
+    <div></div>
     <button class="hint-btn" id="food-hint-btn" onclick="revealFoodHint()">Hint (National Dish)</button>
   </div>
   <div id="food-hint-box"></div>
@@ -206,8 +206,8 @@ const USA = {
   name:"USA", region:"N. America", lat:38, lon:-97, kcal:3800, protein:112, fat:155, carbs:470,
   data:[
     {group:"Beverages",      subs:[{name:"Soft drinks",g:310,kcal:72},{name:"Alcohol",g:140,kcal:42},{name:"Juices",g:70,kcal:26}]},
-    {group:"Cereals",        subs:[{name:"Wheat",g:175,kcal:570},{name:"Maize",g:90,kcal:310},{name:"Rice",g:28,kcal:100},{name:"Other cereals",g:27,kcal:88}]},
-    {group:"Fruit & veg",    subs:[{name:"Tomatoes",g:88,kcal:18},{name:"Lettuce/salad",g:55,kcal:8},{name:"Potatoes (fresh)",g:48,kcal:37},{name:"Oranges",g:42,kcal:20},{name:"Apples",g:38,kcal:18},{name:"Bananas",g:32,kcal:29},{name:"Onions",g:28,kcal:11},{name:"Corn (sweet)",g:25,kcal:22}]},
+    {group:"Cereals",        subs:[{name:"Wheat",g:175,kcal:570},{name:"Corn",g:90,kcal:310},{name:"Rice",g:28,kcal:100},{name:"Other cereals",g:27,kcal:88}]},
+    {group:"Fruit & veg",    subs:[{name:"Tomatoes",g:88,kcal:18},{name:"Lettuce/salad",g:55,kcal:8},{name:"Potatoes (fresh)",g:48,kcal:37},{name:"Oranges",g:42,kcal:20},{name:"Apples",g:38,kcal:18},{name:"Bananas",g:32,kcal:29},{name:"Onions",g:28,kcal:11},{name:"Sweet corn",g:25,kcal:22}]},
     {group:"Dairy & eggs",   subs:[{name:"Milk",g:200,kcal:130},{name:"Cheese",g:55,kcal:205},{name:"Butter",g:10,kcal:74},{name:"Eggs",g:38,kcal:54}]},
     {group:"Meat",           subs:[{name:"Beef",g:112,kcal:264},{name:"Poultry",g:122,kcal:244},{name:"Pork",g:70,kcal:158},{name:"Other meat",g:26,kcal:54}]},
     {group:"Fats & oils",    subs:[{name:"Veg oils",g:58,kcal:520},{name:"Animal fats",g:17,kcal:134}]},
@@ -1175,10 +1175,17 @@ function groupKcal(d){return d.subs.reduce((s,x)=>s+x.kcal,0)}
 function groupG(d){return d.subs.reduce((s,x)=>s+x.g,0)}
 
 /* ── DATE SEED ── */
-function todayStr(){const d=new Date();return`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`}
-function seededRng(seed){
-  let s=0;for(let i=0;i<seed.length;i++)s=(s*31+seed.charCodeAt(i))>>>0;
-  return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296};
+function todayStr(){const d=new Date();return d.toISOString().slice(0,10);} // YYYY-MM-DD
+function seededRng(str){
+  // FNV-1a hash → mulberry32 PRNG for good per-day variety
+  let h=2166136261>>>0;
+  for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}
+  return function(){
+    h+=0x6D2B79F5;
+    let t=Math.imul(h^h>>>15,1|h);
+    t^=t+Math.imul(t^t>>>7,61|t);
+    return((t^t>>>14)>>>0)/4294967296;
+  };
 }
 function getDailyCountry(){
   const rng=seededRng(todayStr());
@@ -1195,14 +1202,6 @@ function arrowSVG(deg){return`<svg class="arrow-svg" width="13" height="13" view
 /* ── STATE ── */
 let ST={answer:null,guesses:[],done:false,streak:0};
 
-function renderConsumptionLabel(){
-  const a = ST.answer;
-  const el = document.getElementById('consumption-label');
-  if (!el) return;
-  // Convert kcal to macros in grams for display
-  const totalG = a.data.reduce((s,d) => s + d.subs.reduce((ss,x) => ss + x.g, 0), 0);
-  el.innerHTML = `Average daily consumption: <span>${totalG.toLocaleString()}g</span> of food &amp; drink &nbsp;·&nbsp; <span>${a.kcal.toLocaleString()} kcal</span> per person`;
-}
 
 function init(){
   ST.answer=getDailyCountry();ST.guesses=[];ST.done=false;
@@ -1217,23 +1216,30 @@ function init(){
   if(fhb){fhb.disabled=false;fhb.textContent='Hint (National Dish)';}
   const d=new Date();
   document.getElementById('date-pill').textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  renderStats();renderLegend();renderCombo();renderPips();renderGuesses();renderConsumptionLabel();
+  renderStats();renderLegend();renderCombo();renderPips();renderGuesses();
 }
 
-/* ── STATS ── */
 function sign(v){return v>0?'+':''}
 function dc(v,t=30){return Math.abs(v)<=t?'dz':v>0?'dp':'dn'}
+function totalKcal(country){return country.data.reduce((s,d)=>s+d.subs.reduce((ss,x)=>ss+x.kcal,0),0);}
 function renderStats(){
   const a=ST.answer,u=USA;
-  const aK=a.kcal,uK=u.kcal,dK=aK-uK;
-  const aPr=Math.round(a.protein*4/aK*100),uPr=Math.round(u.protein*4/uK*100);
-  const aFt=Math.round(a.fat*9/aK*100),uFt=Math.round(u.fat*9/uK*100);
-  const aCb=Math.round(a.carbs*4/aK*100),uCb=Math.round(u.carbs*4/uK*100);
+  const aK=totalKcal(a),uK=totalKcal(u);
+  const aG=a.data.reduce((s,d)=>s+d.subs.reduce((ss,x)=>ss+x.g,0),0);
+  const uG=u.data.reduce((s,d)=>s+d.subs.reduce((ss,x)=>ss+x.g,0),0);
+  // Meat share of cal
+  const aMeatK=a.data.filter(d=>d.group==='Meat').reduce((s,d)=>s+d.subs.reduce((ss,x)=>ss+x.kcal,0),0);
+  const uMeatK=u.data.filter(d=>d.group==='Meat').reduce((s,d)=>s+d.subs.reduce((ss,x)=>ss+x.kcal,0),0);
+  const aMeatPct=Math.round(aMeatK/aK*100),uMeatPct=Math.round(uMeatK/uK*100);
+  const plantGroups=['Cereals','Fruit & veg','Roots & tubers','Pulses & nuts'];
+  const aPlantK=a.data.filter(d=>plantGroups.includes(d.group)).reduce((s,d)=>s+d.subs.reduce((ss,x)=>ss+x.kcal,0),0);
+  const uPlantK=u.data.filter(d=>plantGroups.includes(d.group)).reduce((s,d)=>s+d.subs.reduce((ss,x)=>ss+x.kcal,0),0);
+  const aPlantPct=Math.round(aPlantK/aK*100),uPlantPct=Math.round(uPlantK/uK*100);
   document.getElementById('stats-row').innerHTML=`
-    <div class="sc"><div class="sc-label">Total energy</div><div class="sc-val">${aK.toLocaleString()} kcal</div><div class="sc-sub ${dc(dK,80)}">${sign(dK)}${dK.toLocaleString()} vs USA</div></div>
-    <div class="sc"><div class="sc-label">Protein share</div><div class="sc-val">${aPr}%</div><div class="sc-sub ${dc(aPr-uPr,2)}">${sign(aPr-uPr)}${aPr-uPr}pp vs USA (${uPr}%)</div></div>
-    <div class="sc"><div class="sc-label">Fat share</div><div class="sc-val">${aFt}%</div><div class="sc-sub ${dc(aFt-uFt,2)}">${sign(aFt-uFt)}${aFt-uFt}pp vs USA (${uFt}%)</div></div>
-    <div class="sc"><div class="sc-label">Carbs share</div><div class="sc-val">${aCb}%</div><div class="sc-sub ${dc(aCb-uCb,2)}">${sign(aCb-uCb)}${aCb-uCb}pp vs USA (${uCb}%)</div></div>`;
+    <div class="sc"><div class="sc-label">Calories</div><div class="sc-val">${aK.toLocaleString()} cal</div><div class="sc-sub dz">US: ${uK.toLocaleString()} cal</div></div>
+    <div class="sc"><div class="sc-label">Food weight</div><div class="sc-val">${aG.toLocaleString()}g/day</div><div class="sc-sub dz">US: ${uG.toLocaleString()}g/day</div></div>
+    <div class="sc"><div class="sc-label">Meat share</div><div class="sc-val">${aMeatPct}% of cal</div><div class="sc-sub dz">US: ${uMeatPct}%</div></div>
+    <div class="sc"><div class="sc-label">Plant share</div><div class="sc-val">${aPlantPct}% of cal</div><div class="sc-sub dz">US: ${uPlantPct}%</div></div>`;
 }
 
 /* ── LEGEND ── */
@@ -1245,7 +1251,7 @@ function renderLegend(){
 }
 
 /* ── COMBO RENDER (proportional, aligned, subcategory stripes) ── */
-const GAP=40,MAX_H=210;
+const GAP=60,MAX_H=210;
 
 function buildCols(country,drawW){
   const totalKcal=country.data.reduce((s,d)=>s+groupKcal(d),0);
@@ -1282,7 +1288,7 @@ function renderCombo(){
     // Floating label bar sitting in the top-left of each row
     const el=document.createElement('div');
     el.style.cssText=`position:absolute;top:${top+8}px;left:32px;z-index:6;display:flex;align-items:center;gap:8px;pointer-events:none`;
-    el.innerHTML=`<span style="font-size:12px;font-family:'Syne',sans-serif;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:rgba(245,244,238,0.90);background:rgba(13,13,15,0.72);padding:3px 8px;border-radius:5px;backdrop-filter:blur(4px)">${lbl}</span><span style="font-size:13px;font-family:'Syne',sans-serif;font-weight:600;color:rgba(245,244,238,0.70);background:rgba(13,13,15,0.72);padding:3px 8px;border-radius:5px">${kcal.toLocaleString()} kcal/day</span>`;
+    el.innerHTML=`<span style="font-size:12px;font-family:'Syne',sans-serif;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:rgba(245,244,238,0.90);background:rgba(13,13,15,0.72);padding:3px 8px;border-radius:5px;backdrop-filter:blur(4px)">${lbl}</span><span style="font-size:13px;font-family:'Syne',sans-serif;font-weight:600;color:rgba(245,244,238,0.70);background:rgba(13,13,15,0.72);padding:3px 8px;border-radius:5px">${kcal.toLocaleString()} cal/day</span>`;
     canvas.appendChild(el);
   });
 
@@ -1310,7 +1316,7 @@ function renderCombo(){
         // label only if big enough
         if(col.w>30&&subH>18){
           const fs=Math.min(10,Math.max(8,Math.min(col.w,subH)/9));
-          el.innerHTML=`<span class="bl" style="font-size:${fs}px;color:rgba(237,237,234,0.85)">${sub.name}</span>${subH>32&&col.w>45?`<span class="bv" style="font-size:${Math.max(7,fs-1)}px;color:rgba(237,237,234,0.6)">${sub.kcal}kcal</span>`:''}`;
+          el.innerHTML=`<span class="bl" style="font-size:${fs}px;color:rgba(237,237,234,0.85)">${sub.name}</span>${subH>32&&col.w>45?`<span class="bv" style="font-size:${Math.max(7,fs-1)}px;color:rgba(237,237,234,0.6)">${sub.kcal}cal</span>`:''}`;
         }
         if(clickable){
           el.addEventListener('click',()=>showPopup(col.group));
@@ -1318,7 +1324,7 @@ function renderCombo(){
         el.addEventListener('mousemove',e=>{
           const tt=document.getElementById('tt');
           tt.style.display='block';tt.style.left=(e.clientX+12)+'px';tt.style.top=(e.clientY-8)+'px';
-          tt.textContent=`${col.group} › ${sub.name}: ${sub.g}g · ${sub.kcal}kcal${clickable?' · click for full comparison':''}`;
+          tt.textContent=`${col.group} › ${sub.name}: ${sub.g}g · ${sub.kcal}cal${clickable?' · click for full comparison':''}`;
         });
         el.addEventListener('mouseleave',()=>{document.getElementById('tt').style.display='none';});
         canvas.appendChild(el);
@@ -1338,7 +1344,7 @@ function showPopup(group){
   const c=CAT_COLORS[group]||{base:'#555'};
   const mK=md?groupKcal(md):0,mG=md?groupG(md):0;
   const uK=ud?groupKcal(ud):0,uG=ud?groupG(ud):0;
-  const mTotK=ST.answer.kcal,uTotK=USA.kcal;
+  const mTotK=totalKcal(ST.answer),uTotK=totalKcal(USA);
   const mTotG=ST.answer.data.reduce((s,d)=>s+groupG(d),0);
   const uTotG=USA.data.reduce((s,d)=>s+groupG(d),0);
   const mSk=Math.round(mK/mTotK*100),uSk=Math.round(uK/uTotK*100);
@@ -1359,7 +1365,7 @@ function showPopup(group){
       const uk=uSubMap[s.name]?.kcal||0,ug=uSubMap[s.name]?.g||0;
       const dc=s.mK-uk;
       const dotColor=subColor(group,si);
-      return`<tr><td><span class="sub-dot" style="background:${dotColor}"></span>${s.name}</td><td>${s.mG}g</td><td>${ug}g</td><td style="color:${cc(dc)}">${fmt(dc)}kcal</td></tr>`;
+      return`<tr><td><span class="sub-dot" style="background:${dotColor}"></span>${s.name}</td><td>${s.mG}g</td><td>${ug}g</td><td style="color:${cc(dc)}">${fmt(dc)}cal</td></tr>`;
     }).join('');
 
   const mx=Math.max(mG,uG,1);
@@ -1368,18 +1374,18 @@ function showPopup(group){
       <div class="popup" onclick="event.stopPropagation()">
         <button class="popup-close" onclick="closePopup()">✕</button>
         <div class="popup-title"><span class="popup-dot" style="background:${c.base}"></span>${group}</div>
-        <div class="pr"><span class="prl">Mystery kcal/day</span><span class="prv">${mK} kcal (${mSk}% of diet)</span></div>
-        <div class="pr"><span class="prl">USA kcal/day</span><span class="prv">${uK} kcal (${uSk}% of diet)</span></div>
-        <div class="pr"><span class="prl">Kcal diff</span><span class="prv" style="color:${cc(dK)}">${fmt(dK)} kcal (${fmt(dKpct)}%)</span></div>
+        <div class="pr"><span class="prl">Mystery cal/day</span><span class="prv">${mK} cal (${mSk}% of diet)</span></div>
+        <div class="pr"><span class="prl">USA cal/day</span><span class="prv">${uK} cal (${uSk}% of diet)</span></div>
+        <div class="pr"><span class="prl">Cal diff</span><span class="prv" style="color:${cc(dK)}">${fmt(dK)} cal (${fmt(dKpct)}%)</span></div>
         <div class="pr"><span class="prl">Weight diff</span><span class="prv" style="color:${cc(dG)}">${fmt(dG)}g (${fmt(dGpct)}%)</span></div>
-        <div class="pr"><span class="prl">Diet share diff</span><span class="prv" style="color:${cc(mSk-uSk)}">${fmt(mSk-uSk)}pp kcal · ${fmt(mSg-uSg)}pp weight</span></div>
+        <div class="pr"><span class="prl">Diet share diff</span><span class="prv" style="color:${cc(mSk-uSk)}">${fmt(mSk-uSk)}pp cal · ${fmt(mSg-uSg)}pp weight</span></div>
         <div class="pbar-wrap">
           <div class="pbar-lbl">g/day</div>
           <div class="pbar-row"><span class="pbar-name">Mystery</span><div class="pbar-track"><div class="pbar-fill" style="width:${Math.round(mG/mx*100)}%;background:${c.base}"></div></div><span class="pbar-val">${mG}g</span></div>
           <div class="pbar-row"><span class="pbar-name">USA</span><div class="pbar-track"><div class="pbar-fill" style="width:${Math.round(uG/mx*100)}%;background:#2a5898"></div></div><span class="pbar-val">${uG}g</span></div>
         </div>
         <table class="sub-table" style="margin-top:14px">
-          <thead><tr><th>Item</th><th>Mystery</th><th>USA</th><th>Δkcal</th></tr></thead>
+          <thead><tr><th>Item</th><th>Mystery</th><th>USA</th><th>Δcal</th></tr></thead>
           <tbody>${subRows}</tbody>
         </table>
       </div>
@@ -1435,7 +1441,7 @@ function showResult(won){
   document.getElementById('result-area').innerHTML=`
     <div class="result-card">
       <div class="result-title ${won?'won':'lost'}">${won?'Correct!':'Answer: '+a.name}</div>
-      <div class="result-sub">${a.name} · ${a.region} · ${a.kcal.toLocaleString()} kcal/day · ${ST.guesses.length}/6 guesses</div>
+      <div class="result-sub">${a.name} · ${a.region} · ${totalKcal(a).toLocaleString()} cal/day · ${ST.guesses.length}/6 guesses</div>
       ${won?`<div class="result-streak">◆ Streak: ${ST.streak}</div>`:''}
     </div>
     <button class="next-btn" onclick="startFree()">Play free mode (random) →</button>`;
@@ -1454,7 +1460,7 @@ function startFree(){
   document.getElementById('food-hint-box').innerHTML='';
   const fhb=document.getElementById('food-hint-btn');
   if(fhb){fhb.disabled=false;fhb.textContent='Hint (National Dish)';}
-  renderStats();renderLegend();renderCombo();renderPips();renderGuesses();renderConsumptionLabel();
+  renderStats();renderLegend();renderCombo();renderPips();renderGuesses();
 }
 
 /* ── FOOD HINT ── */
