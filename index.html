@@ -172,7 +172,7 @@ main{width:100%;max-width:860px;padding:14px 20px 60px}
 const CAT_ORDER = [
   "Beverages","Cereals","Fruit & veg","Dairy & eggs",
   "Meat","Fats & oils","Sugar","Roots & tubers",
-  "Fish","Pulses & nuts"
+  "Pulses & nuts"
 ];
 
 // Parent colors — subs get lightness variants auto-generated in JS
@@ -181,11 +181,10 @@ const CAT_COLORS = {
   "Cereals":        {base:"#6b4a10", shades:["#6b4a10","#8a6020","#4a3008","#a07830"]},
   "Fruit & veg":    {base:"#2a5812", shades:["#2a5812","#3a7818","#1a3a0a","#4a9820","#5aac28","#205808"]},
   "Dairy & eggs":   {base:"#145040", shades:["#145040","#1c6a55","#0c3828","#246870"]},
-  "Meat":           {base:"#681e18", shades:["#681e18","#8a2820","#4a1410","#7a3020"]},
+  "Meat":           {base:"#681e18", shades:["#681e18","#8a2820","#4a1410","#7a3020","#0e3458","#1a4c70","#0a2238","#285880"]},
   "Fats & oils":    {base:"#403c36", shades:["#403c36","#584e44","#2c2820"]},
   "Sugar":          {base:"#5c1a3a", shades:["#5c1a3a","#7a2250"]},
   "Roots & tubers": {base:"#583408", shades:["#583408","#784a10","#3a2006","#6a5010"]},
-  "Fish":           {base:"#0e3458", shades:["#0e3458","#1a4c70","#0a2238","#285880"]},
   "Pulses & nuts":  {base:"#0e4838", shades:["#0e4838","#186050","#0a2e24","#207858"]},
 };
 
@@ -1257,11 +1256,18 @@ function buildCols(country,drawW){
   const totalKcal=country.data.reduce((s,d)=>s+groupKcal(d),0);
   const cols=[];let x=0;
   CAT_ORDER.forEach(group=>{
-    const d=country.data.find(d=>d.group===group);
-    if(!d)return;
-    const gk=groupKcal(d);if(gk===0)return;
+    let entries=country.data.filter(d=>d.group===group);
+    // Merge Fish subs into Meat column
+    if(group==='Meat'){
+      const fish=country.data.find(d=>d.group==='Fish');
+      if(fish)entries=[...entries,{group:'Fish',subs:fish.subs}];
+    }
+    if(!entries.length)return;
+    const allSubs=entries.flatMap(e=>e.subs);
+    const gk=allSubs.reduce((s,x)=>s+x.kcal,0);
+    if(gk===0)return;
     const w=Math.max(2,(gk/totalKcal)*drawW);
-    cols.push({group,x:Math.round(x),w:Math.round(w),totalKcal:gk,subs:d.subs});
+    cols.push({group,x:Math.round(x),w:Math.round(w),totalKcal:gk,subs:allSubs});
     x+=w;
   });
   return cols;
@@ -1313,10 +1319,11 @@ function renderCombo(){
         const el=document.createElement('div');
         el.className='block';
         el.style.cssText=`left:${col.x+offX}px;top:${subY}px;width:${col.w}px;height:${subH}px;background:${fill};border:1px solid var(--bg);opacity:${opacity};`;
-        // label only if big enough
-        if(col.w>30&&subH>18){
+        // label only if big enough — stricter width check to avoid edge clipping
+        if(col.w>42&&subH>18){
           const fs=Math.min(10,Math.max(8,Math.min(col.w,subH)/9));
-          el.innerHTML=`<span class="bl" style="font-size:${fs}px;color:rgba(237,237,234,0.85)">${sub.name}</span>${subH>32&&col.w>45?`<span class="bv" style="font-size:${Math.max(7,fs-1)}px;color:rgba(237,237,234,0.6)">${sub.kcal}cal</span>`:''}`;
+          const nameClipped=col.w<70?sub.name.split('/')[0].split('(')[0].trim():sub.name;
+          el.innerHTML=`<span class="bl" style="font-size:${fs}px;color:rgba(237,237,234,0.85);max-width:${col.w-6}px;overflow:hidden;display:block;text-overflow:ellipsis;white-space:nowrap">${nameClipped}</span>${subH>32&&col.w>55?`<span class="bv" style="font-size:${Math.max(7,fs-1)}px;color:rgba(237,237,234,0.6)">${sub.kcal}cal</span>`:''}`;
         }
         if(clickable){
           el.addEventListener('click',()=>showPopup(col.group));
